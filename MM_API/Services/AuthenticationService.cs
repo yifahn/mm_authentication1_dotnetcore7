@@ -10,7 +10,7 @@ using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
 
 ///
-///const string FIREBASE_PUB_KEY = "AIzaSyB891rsMk5UB_1o6oNWXjIr_KccFovrmPk";
+
 
 namespace MM_API.Servicesc
 {
