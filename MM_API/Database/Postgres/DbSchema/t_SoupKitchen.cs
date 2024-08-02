@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Database.Postgres.DbSchema
 {
-    public class t_SoupKitchen
+    public class t_Soupkitchen
     {
         [Key]
         public int soupkitchen_id { get; set; }

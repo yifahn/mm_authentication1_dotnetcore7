@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using SharedGameFramework.Game.Character;
 
+
 namespace Database.Postgres.DbSchema
 {
     public class t_Character
@@ -14,7 +15,7 @@ namespace Database.Postgres.DbSchema
 
         public t_Kingdom kingdom { get; set; }
 
-        public t_SoupKitchen soupkitchen { get; set; }
+        public t_Soupkitchen soupkitchen { get; set; }
         public int political_points { get; set; }
 
         public string character_name { get; set; }

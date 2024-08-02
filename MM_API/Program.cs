@@ -2,20 +2,46 @@ using Microsoft.EntityFrameworkCore;
 using MM_API.Services;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Google.Apis.Auth.OAuth2;
-using PSQLLibrary.Game.MM_Framework.Treasury;
-using PSQLLibrary.Game.MM_Framework.Soupkitchen;
+using Microsoft.AspNetCore.Authentication;
+using System.Text;
+
 
 namespace MM_API
 {
     public class Program
     {
+
         public static void Main(string[] args)
         {
             //CREATE WEBAPP BUILDER
             var builder = WebApplication.CreateBuilder(args);
 
-            // CLIENT AUTHORISATION via FIREBASE idToken(authorisation idToken as request header) && API Authorisation - configure bearer token 
+            //builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            //    .AddJwtBearer(o =>
+            //    {
+            //        o.
+            //    });
+
+
+            //adding jwt auth
+            //builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            //    .AddJwtBearer(options =>
+            //    {
+            //        options.TokenValidationParameters = new TokenValidationParameters
+            //        {
+            //            //define which claim requires to check
+            //            ValidateIssuer = true,
+            //            ValidateAudience = true,
+            //            ValidateLifetime = true,
+            //            ValidateIssuerSigningKey = true,
+            //            //store the value in appsettings.json
+            //            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            //            ValidAudience = builder.Configuration["Jwt:Issuer"],
+            //            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            //        };
+            //    });
+
+           // CLIENT AUTHORISATION via FIREBASE idToken(authorisation idToken as request header) && API Authorisation - configure bearer token
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -34,7 +60,7 @@ namespace MM_API
             // ADD SERVICES - DI ALLOWS TEST / NONTEST SERVICES
             builder.Services
                 .AddScoped<IArmouryService, TestArmouryService>()
-                .AddScoped<IAuthenticationService, TestAuthenticationService>()
+                .AddScoped<Services.IAuthenticationService, TestAuthenticationService>()
                 .AddScoped<IBattleboardService, TestBattleboardService>()
                 .AddScoped<ICharacterService, TestCharacterService>()
                 .AddScoped<IKingdomService, TestKingdomService>()
@@ -64,7 +90,8 @@ namespace MM_API
             }
 
             // MISC
-            app.UseAuthorization();
+            //app.UseAuthentication();
+            //app.UseAuthorization();
             app.MapControllers();
 
             // RUN

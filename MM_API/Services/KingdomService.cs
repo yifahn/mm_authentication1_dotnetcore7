@@ -2,6 +2,7 @@
 using System.Text;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
+using SharedNetworkFramework.Game.Kingdom.Map;
 
 namespace MM_API.Services
 {
@@ -12,58 +13,77 @@ namespace MM_API.Services
         public Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload payload);
 
 
-
-
-
-        /*          NewMapPayload DTO
-        ________________________________|
-        SignInPayload                   |
-        ________________________________|
-                                        |
-        email	          |  string	    |
-        password	      |  string	    |
-        returnSecureToken |	 boolean	|
-                          |             |
-        ________________________________|
-        SignInResponse    |             |
-        ________________________________|
-                          |             |
-        idToken	          |  string	    |
-        email	          |  string	    |
-        refreshToken	  |  string	    |
-        expiresIn         |  string	    |
-        localId	          |  string	    |
-        registered        |  boolean	|
-         */
-        
-        /*
-         *          SIGNIN DTO
-        ________________________________|       
-        SignInPayload                   |       
-        ________________________________|       
-                                        |       
-        email	          |  string	    |       
-        password	      |  string	    |       
-        returnSecureToken |	 boolean	|       
-                          |             |       
-        ________________________________|       
-        SignInResponse    |             |       
-        ________________________________|       
-                          |             |       
-        idToken	          |  string	    |       
-        email	          |  string	    |       
-        refreshToken	  |  string	    |       
-        expiresIn         |  string	    |       
-        localId	          |  string	    |       
-        registered        |  boolean	|       
-         */
-
-
-
     }
+
+
+    /*          NewMapPayload DTO
+    ________________________________|
+    SignInPayload                   |
+    ________________________________|
+                                    |
+    email	          |  string	    |
+    password	      |  string	    |
+    returnSecureToken |	 boolean	|
+                      |             |
+    ________________________________|
+    SignInResponse    |             |
+    ________________________________|
+                      |             |
+    idToken	          |  string	    |
+    email	          |  string	    |
+    refreshToken	  |  string	    |
+    expiresIn         |  string	    |
+    localId	          |  string	    |
+    registered        |  boolean	|
+     */
+
+    /*
+     *          SIGNIN DTO
+    ________________________________|       
+    SignInPayload                   |       
+    ________________________________|       
+                                    |       
+    email	          |  string	    |       
+    password	      |  string	    |       
+    returnSecureToken |	 boolean	|       
+                      |             |       
+    ________________________________|       
+    SignInResponse    |             |       
+    ________________________________|       
+                      |             |       
+    idToken	          |  string	    |       
+    email	          |  string	    |       
+    refreshToken	  |  string	    |       
+    expiresIn         |  string	    |       
+    localId	          |  string	    |       
+    registered        |  boolean	|       
+     */
+
+
+
+
     #region Production
     public class KingdomService : IKingdomService
     {
+        private readonly MM_DbContext _dbContext;
+
+        public KingdomService(MM_DbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
+        public async Task<IMapNewResponse> NewMap(MapNewPayload mapNewPayload)
+        {
+            return null;
+        }
+        public async Task<IMapLoadResponse> LoadMap(MapLoadPayload mapLoadPayload)
+        {
+            return null;
+        }
+        public async Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload mapUpdatePayload)
+        {
+            return null;
+        }
 
     }
     #endregion
@@ -77,7 +97,18 @@ namespace MM_API.Services
             _dbContext = dbContext;
         }
 
-
+        public async Task<IMapNewResponse> NewMap(MapNewPayload mapNewPayload)
+        {
+            return null;
+        }
+        public async Task<IMapLoadResponse> LoadMap(MapLoadPayload mapLoadPayload)
+        {
+            return null;
+        }
+        public async Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload mapUpdatePayload)
+        {
+            return null;
+        }
 
     }
     #endregion

@@ -4,15 +4,19 @@ using SharedNetworkFramework.Authentication.Firebase.Register;
 using SharedNetworkFramework.Authentication.Firebase.SignIn;
 using SharedNetworkFramework.Authentication.Firebase.RefreshToken;
 
-using Database.Postgres.DbSchema;
+
 using System.Text;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
 
+using Database.Postgres.DbSchema;
+
+
+
 ///
 ///const string FIREBASE_PUB_KEY = "AIzaSyB891rsMk5UB_1o6oNWXjIr_KccFovrmPk";
 
-namespace MM_API.Servicesc
+namespace MM_API.Services
 {
 
     public interface IAuthenticationService
@@ -322,7 +326,7 @@ namespace MM_API.Servicesc
                             session_sessiontoken = "0"
                         };
 
-                        await _dbContext.t_session.AddAsync(session);
+                        await _dbContext.AddAsync(session);
                         await _dbContext.SaveChangesAsync();
 
                         return signInResponse;

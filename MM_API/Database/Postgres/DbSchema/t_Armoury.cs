@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using SharedGameFramework.Game.Armoury;
 
+
 namespace Database.Postgres.DbSchema
 {
     public class t_Armoury

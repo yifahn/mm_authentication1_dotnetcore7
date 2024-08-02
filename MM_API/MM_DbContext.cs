@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore.Design;
 //
 using System.Diagnostics.CodeAnalysis;
-using PSQLLibrary.DbSchema;
+using Database.Postgres.DbSchema;
 
 namespace MM_API
 {
@@ -23,7 +23,7 @@ namespace MM_API
         [AllowNull]
         public DbSet<t_Treasury> t_treasury { get; set; }
         [AllowNull]
-        public DbSet<t_SoupKitchen> t_soupkitchen { get; set; }
+        public DbSet<t_Soupkitchen> t_soupkitchen { get; set; }
 
     }
 }

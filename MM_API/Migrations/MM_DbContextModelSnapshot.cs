@@ -149,7 +149,7 @@ namespace MM_API.Migrations
                     b.ToTable("t_session");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_SoupKitchen", b =>
+            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Soupkitchen", b =>
                 {
                     b.Property<int>("soupkitchen_id")
                         .ValueGeneratedOnAdd()
@@ -273,11 +273,11 @@ namespace MM_API.Migrations
                     b.Navigation("user");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_SoupKitchen", b =>
+            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Soupkitchen", b =>
                 {
                     b.HasOne("PSQLLibrary.DbSchema.t_Character", "character")
                         .WithOne("soupkitchen")
-                        .HasForeignKey("PSQLLibrary.DbSchema.t_SoupKitchen", "fk_character_id")
+                        .HasForeignKey("PSQLLibrary.DbSchema.t_Soupkitchen", "fk_character_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
