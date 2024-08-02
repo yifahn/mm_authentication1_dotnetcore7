@@ -9,9 +9,11 @@
       "applicationUrl": "http://localhost:5223",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "FIREBASE_API_KEY": "AIzaSyB891rsMk5UB_1o6oNWXjIr_KccFovrmPk",
-        "GOOGLE_APPLICATION_CREDENTIALS": "C:\\Projects\\MonoMonarch\\secrets\\firebaseconfig.json"
-      }
+        "FIREBASE_API_KEY": "xxx",
+        "GOOGLE_APPLICATION_CREDENTIALS": "xxx"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5223"
     }
   }
 }
