@@ -12,8 +12,6 @@
         "FIREBASE_API_KEY": "xxx",
         "GOOGLE_APPLICATION_CREDENTIALS": "xxx"
       },
-      "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5223"
     }
   }
 }
