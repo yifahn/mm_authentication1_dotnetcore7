@@ -1,17 +1,14 @@
-
 {
   "profiles": {
     "MM_API": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",
-      "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5223",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "FIREBASE_API_KEY": "xxx",
-        "GOOGLE_APPLICATION_CREDENTIALS": "xxx"
+        "ASPNETCORE_ENVIRONMENT": "Development"
       },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5223"
     }
   }
 }

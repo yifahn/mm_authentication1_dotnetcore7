@@ -37,7 +37,7 @@ namespace MM_API.Controllers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"New map failed: {ex.Message}");
                 return StatusCode(500, "Internal Server Error");
             }
         }
@@ -63,7 +63,7 @@ namespace MM_API.Controllers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Load map failed: {ex.Message}");
                 return StatusCode(500, "Internal Server Error");
             }
         }
@@ -89,7 +89,7 @@ namespace MM_API.Controllers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Update map failed: {ex.Message}");
                 return StatusCode(500, "Internal Server Error");
             }
         }
