@@ -16,20 +16,20 @@ using SharedGameFramework.Game.Kingdom.Map;
 namespace MM_API.Migrations
 {
     [DbContext(typeof(MM_DbContext))]
-    [Migration("20240208074646_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20240821091441_initial")]
+    partial class initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.10")
+                .HasAnnotation("ProductVersion", "8.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Armoury", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Armoury", b =>
                 {
                     b.Property<int>("armoury_id")
                         .ValueGeneratedOnAdd()
@@ -52,7 +52,7 @@ namespace MM_API.Migrations
                     b.ToTable("t_armoury");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Character", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Character", b =>
                 {
                     b.Property<int>("character_id")
                         .ValueGeneratedOnAdd()
@@ -89,7 +89,7 @@ namespace MM_API.Migrations
                     b.ToTable("t_character");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Kingdom", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Kingdom", b =>
                 {
                     b.Property<int>("kingdom_id")
                         .ValueGeneratedOnAdd()
@@ -116,7 +116,7 @@ namespace MM_API.Migrations
                     b.ToTable("t_kingdom");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Session", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Session", b =>
                 {
                     b.Property<int>("session_id")
                         .ValueGeneratedOnAdd()
@@ -141,10 +141,6 @@ namespace MM_API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("session_sessiontoken")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.HasKey("session_id");
 
                     b.HasIndex("fk_user_id");
@@ -152,7 +148,7 @@ namespace MM_API.Migrations
                     b.ToTable("t_session");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Soupkitchen", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Soupkitchen", b =>
                 {
                     b.Property<int>("soupkitchen_id")
                         .ValueGeneratedOnAdd()
@@ -183,7 +179,7 @@ namespace MM_API.Migrations
                     b.ToTable("t_soupkitchen");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Treasury", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Treasury", b =>
                 {
                     b.Property<int>("treasury_id")
                         .ValueGeneratedOnAdd()
@@ -211,17 +207,13 @@ namespace MM_API.Migrations
                     b.ToTable("t_treasury");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_User", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_User", b =>
                 {
                     b.Property<int>("user_id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("user_id"));
-
-                    b.Property<string>("user_fb_uuid")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<string>("user_name")
                         .IsRequired()
@@ -232,20 +224,20 @@ namespace MM_API.Migrations
                     b.ToTable("t_user");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Armoury", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Armoury", b =>
                 {
-                    b.HasOne("PSQLLibrary.DbSchema.t_Kingdom", "kingdom")
+                    b.HasOne("Database.Postgres.DbSchema.t_Kingdom", "kingdom")
                         .WithOne("armoury")
-                        .HasForeignKey("PSQLLibrary.DbSchema.t_Armoury", "fk_kingdom_id")
+                        .HasForeignKey("Database.Postgres.DbSchema.t_Armoury", "fk_kingdom_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("kingdom");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Character", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Character", b =>
                 {
-                    b.HasOne("PSQLLibrary.DbSchema.t_Kingdom", "kingdom")
+                    b.HasOne("Database.Postgres.DbSchema.t_Kingdom", "kingdom")
                         .WithMany("characters")
                         .HasForeignKey("fk_kingdom_id")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -254,20 +246,20 @@ namespace MM_API.Migrations
                     b.Navigation("kingdom");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Kingdom", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Kingdom", b =>
                 {
-                    b.HasOne("PSQLLibrary.DbSchema.t_User", "user")
+                    b.HasOne("Database.Postgres.DbSchema.t_User", "user")
                         .WithOne("kingdom")
-                        .HasForeignKey("PSQLLibrary.DbSchema.t_Kingdom", "fk_user_id")
+                        .HasForeignKey("Database.Postgres.DbSchema.t_Kingdom", "fk_user_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("user");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Session", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Session", b =>
                 {
-                    b.HasOne("PSQLLibrary.DbSchema.t_User", "user")
+                    b.HasOne("Database.Postgres.DbSchema.t_User", "user")
                         .WithMany("sessions")
                         .HasForeignKey("fk_user_id")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -276,35 +268,35 @@ namespace MM_API.Migrations
                     b.Navigation("user");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Soupkitchen", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Soupkitchen", b =>
                 {
-                    b.HasOne("PSQLLibrary.DbSchema.t_Character", "character")
+                    b.HasOne("Database.Postgres.DbSchema.t_Character", "character")
                         .WithOne("soupkitchen")
-                        .HasForeignKey("PSQLLibrary.DbSchema.t_Soupkitchen", "fk_character_id")
+                        .HasForeignKey("Database.Postgres.DbSchema.t_Soupkitchen", "fk_character_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("character");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Treasury", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Treasury", b =>
                 {
-                    b.HasOne("PSQLLibrary.DbSchema.t_Kingdom", "kingdom")
+                    b.HasOne("Database.Postgres.DbSchema.t_Kingdom", "kingdom")
                         .WithOne("treasury")
-                        .HasForeignKey("PSQLLibrary.DbSchema.t_Treasury", "fk_kingdom_id")
+                        .HasForeignKey("Database.Postgres.DbSchema.t_Treasury", "fk_kingdom_id")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("kingdom");
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Character", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Character", b =>
                 {
                     b.Navigation("soupkitchen")
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_Kingdom", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_Kingdom", b =>
                 {
                     b.Navigation("armoury")
                         .IsRequired();
@@ -315,7 +307,7 @@ namespace MM_API.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("PSQLLibrary.DbSchema.t_User", b =>
+            modelBuilder.Entity("Database.Postgres.DbSchema.t_User", b =>
                 {
                     b.Navigation("kingdom")
                         .IsRequired();

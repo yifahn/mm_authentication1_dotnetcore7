@@ -16,426 +16,426 @@ using Database.Postgres.DbSchema;
 ///
 ///const string FIREBASE_PUB_KEY = "AIzaSyB891rsMk5UB_1o6oNWXjIr_KccFovrmPk";
 
-namespace MM_API.Services
-{
+//namespace MM_API.Services
+//{
 
-    public interface IAuthenticationService
-    {
-        public Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload);
-        public Task<ISignInResponse> LoginAsync(SignInPayload loginPayload);
-        public Task<ISignOutResponse> LogoutAsync(SignOutPayload logoutPayload);
-        public Task<IRefreshTokenResponse> RefreshIdToken(RefreshTokenPayload refreshTokenPayload);
-    }
+//    public interface IAuthenticationService
+//    {
+//        public Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload);
+//        public Task<ISignInResponse> LoginAsync(SignInPayload loginPayload);
+//        public Task<ISignOutResponse> LogoutAsync(SignOutPayload logoutPayload);
+//        public Task<IRefreshTokenResponse> RefreshIdToken(RefreshTokenPayload refreshTokenPayload);
+//    }
 
-    /// <summary>
-    /// PRODUCTION
-    /// </summary>
+//    /// <summary>
+//    /// PRODUCTION
+//    /// </summary>
     #region Production
-    public class AuthenticationService : IAuthenticationService
-    {
+//    public class AuthenticationService : IAuthenticationService
+//    {
 
-        private readonly MM_DbContext _dbContext;
+//        private readonly MM_DbContext _dbContext;
 
-        public AuthenticationService(MM_DbContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
+//        public AuthenticationService(MM_DbContext dbContext)
+//        {
+//            _dbContext = dbContext;
+//        }
 
-        private readonly string FB_URL = "https://identitytoolkit.googleapis.com/v1";
-        private readonly string FB_URL_AUTH = "/accounts";
-        private readonly string FB_URL_TOKEN = "https://securetoken.googleapis.com/v1/token";
-        private readonly string FB_URL_APIKEY = $"?key={Environment.GetEnvironmentVariable("FIREBASE_API_KEY")}";
+//        private readonly string FB_URL = "https://identitytoolkit.googleapis.com/v1";
+//        private readonly string FB_URL_AUTH = "/accounts";
+//        private readonly string FB_URL_TOKEN = "https://securetoken.googleapis.com/v1/token";
+//        private readonly string FB_URL_APIKEY = $"?key={Environment.GetEnvironmentVariable("FIREBASE_API_KEY")}";
 
-        /// <summary>
-        /// Register user with FirebaseAuth and PostgresDB
-        /// </summary>
-        /// 
-        /// <param name="registrationPayload"></param>
-        /// <returns>
-        /// RegistrationResponse or FirebaseError
-        /// </returns>
-        public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
-        {
-            try
-            {
-                string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signUp{FB_URL_APIKEY}";
-                using (var client = new HttpClient())
-                {
-                    var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(registrationPayload), Encoding.UTF8, "application/json"));
-                    string responseBody = await response.Content.ReadAsStringAsync();
+//        /// <summary>
+//        /// Register user with FirebaseAuth and PostgresDB
+//        /// </summary>
+//        /// 
+//        /// <param name="registrationPayload"></param>
+//        /// <returns>
+//        /// RegistrationResponse or FirebaseError
+//        /// </returns>
+//        public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
+//        {
+//            try
+//            {
+//                string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signUp{FB_URL_APIKEY}";
+//                using (var client = new HttpClient())
+//                {
+//                    var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(registrationPayload), Encoding.UTF8, "application/json"));
+//                    string responseBody = await response.Content.ReadAsStringAsync();
 
-                    if (response.IsSuccessStatusCode)
-                    {
-                        RegistrationResponse registrationResponse = JsonConvert.DeserializeObject<RegistrationResponse>(responseBody);
+//                    if (response.IsSuccessStatusCode)
+//                    {
+//                        RegistrationResponse registrationResponse = JsonConvert.DeserializeObject<RegistrationResponse>(responseBody);
 
-                        t_User user = new t_User
-                        {
-                            user_name = registrationResponse.Email.Substring(0, registrationResponse.Email.IndexOf('@')),
-                            user_fb_uuid = registrationResponse.LocalId
-                        };
-                        t_Session session = new t_Session()
-                        {
-                            user = user,
-                            session_authtoken = registrationResponse.AuthToken,
-                            session_refreshtoken = registrationResponse.RefreshToken,
-                            session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
-                            session_sessiontoken = "0"
-                        };
+//                        t_User user = new t_User
+//                        {
+//                            user_name = registrationResponse.Email.Substring(0, registrationResponse.Email.IndexOf('@')),
+//                            user_fb_uuid = registrationResponse.LocalId
+//                        };
+//                        t_Session session = new t_Session()
+//                        {
+//                            user = user,
+//                            session_authtoken = registrationResponse.AuthToken,
+//                            session_refreshtoken = registrationResponse.RefreshToken,
+//                            session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
+//                            session_sessiontoken = "0"
+//                        };
 
-                        await _dbContext.AddAsync(user);
-                        await _dbContext.SaveChangesAsync();
-                        await _dbContext.AddAsync(session);
-                        await _dbContext.SaveChangesAsync();
+//                        await _dbContext.AddAsync(user);
+//                        await _dbContext.SaveChangesAsync();
+//                        await _dbContext.AddAsync(session);
+//                        await _dbContext.SaveChangesAsync();
 
-                        return registrationResponse;
-                    }
-                    else //https://learn.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-8.0
-                    {
-                        FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
-                        return firebaseErrorResponse;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
-                //TODO: Implement error logging from service classes and throw from service->controller->client and force client to exit to menu
+//                        return registrationResponse;
+//                    }
+//                    else //https://learn.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-8.0
+//                    {
+//                        FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
+//                        return firebaseErrorResponse;
+//                    }
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+//                //TODO: Implement error logging from service classes and throw from service->controller->client and force client to exit to menu
 
-                //In future implementations:
-                //1. May implement PostgresDB error logging - cross referencing error log and with user's existing sign in/out history
+//                //In future implementations:
+//                //1. May implement PostgresDB error logging - cross referencing error log and with user's existing sign in/out history
 
-            }
-            return null; //Reaches here only if Internal Server Error?
-        }
+//            }
+//            return null; //Reaches here only if Internal Server Error?
+//        }
 
-        /*       SIGNIN DTO
-        ________________________________|
-        SignInPayload                   |
-        ________________________________|
-                                        |
-        email	          |  string	    |
-        password	      |  string	    |
-        returnSecureToken |	 boolean	|
-                          |             |
-        ________________________________|
-        SignInResponse    |             |
-        ________________________________|
-                          |             |
-        idToken	          |  string	    |
-        email	          |  string	    |
-        refreshToken	  |  string	    |
-        expiresIn         |  string	    |
-        localId	          |  string	    |
-        registered        |  boolean	|
-         */
+//        /*       SIGNIN DTO
+//        ________________________________|
+//        SignInPayload                   |
+//        ________________________________|
+//                                        |
+//        email	          |  string	    |
+//        password	      |  string	    |
+//        returnSecureToken |	 boolean	|
+//                          |             |
+//        ________________________________|
+//        SignInResponse    |             |
+//        ________________________________|
+//                          |             |
+//        idToken	          |  string	    |
+//        email	          |  string	    |
+//        refreshToken	  |  string	    |
+//        expiresIn         |  string	    |
+//        localId	          |  string	    |
+//        registered        |  boolean	|
+//         */
 
-        //[RequireHttps]
-        public async Task<ISignInResponse> LoginAsync(SignInPayload loginPayload)
-        {
-            try
-            {
-                string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signInWithPassword{FB_URL_APIKEY}";
-                using (var client = new HttpClient())
-                {
-                    var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(loginPayload), Encoding.UTF8, "application/json"));
-                    string responseBody = await response.Content.ReadAsStringAsync();
+//        //[RequireHttps]
+//        public async Task<ISignInResponse> LoginAsync(SignInPayload loginPayload)
+//        {
+//            try
+//            {
+//                string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signInWithPassword{FB_URL_APIKEY}";
+//                using (var client = new HttpClient())
+//                {
+//                    var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(loginPayload), Encoding.UTF8, "application/json"));
+//                    string responseBody = await response.Content.ReadAsStringAsync();
 
-                    if (response.IsSuccessStatusCode)
-                    {
-                        SignInResponse signInResponse = JsonConvert.DeserializeObject<SignInResponse>(responseBody);
+//                    if (response.IsSuccessStatusCode)
+//                    {
+//                        SignInResponse signInResponse = JsonConvert.DeserializeObject<SignInResponse>(responseBody);
 
-                        t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == signInResponse.LocalId);  //fk_user_id == user.user_id
-                        var t_RecentSession = _dbContext.t_session.FirstOrDefault(s => s.user == user);
-                        t_RecentSession.session_authtoken = signInResponse.AuthToken;
-                        t_RecentSession.session_refreshtoken = signInResponse.RefreshToken;
-                        t_RecentSession.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
-                        t_RecentSession.session_sessiontoken = "0";
+//                        t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == signInResponse.LocalId);  //fk_user_id == user.user_id
+//                        var t_RecentSession = _dbContext.t_session.FirstOrDefault(s => s.user == user);
+//                        t_RecentSession.session_authtoken = signInResponse.AuthToken;
+//                        t_RecentSession.session_refreshtoken = signInResponse.RefreshToken;
+//                        t_RecentSession.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
+//                        t_RecentSession.session_sessiontoken = "0";
 
-                        await _dbContext.SaveChangesAsync();
+//                        await _dbContext.SaveChangesAsync();
 
-                        return signInResponse;
-                    }
-                    else
-                    {
-                        FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
-                        return firebaseErrorResponse;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Login failed: {ex.Message}");
-            }
-            return null;
-        }
+//                        return signInResponse;
+//                    }
+//                    else
+//                    {
+//                        FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
+//                        return firebaseErrorResponse;
+//                    }
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                System.Diagnostics.Debug.WriteLine($"Login failed: {ex.Message}");
+//            }
+//            return null;
+//        }
 
-        //[RequireHttps]
-        public async Task<ISignOutResponse> LogoutAsync(SignOutPayload logoutPayload)
-        {
-            return null;
-        }
+//        //[RequireHttps]
+//        public async Task<ISignOutResponse> LogoutAsync(SignOutPayload logoutPayload)
+//        {
+//            return null;
+//        }
 
-        public async Task<IRefreshTokenResponse> RefreshIdToken(RefreshTokenPayload refreshTokenPayload)
-        {
+//        public async Task<IRefreshTokenResponse> RefreshIdToken(RefreshTokenPayload refreshTokenPayload)
+//        {
 
-            return null;
-        }
-    }
+//            return null;
+//        }
+//    }
 
 
-    //FIREBASE AUTH ENDPOINT SIGN-IN USER
-    /*
-    Request Body Payload
+//    //FIREBASE AUTH ENDPOINT SIGN-IN USER
+//    /*
+//    Request Body Payload
 
-    email	            string	
-    password	        string	
-    returnSecureToken	boolean	
+//    email	            string	
+//    password	        string	
+//    returnSecureToken	boolean	
 
-    Response Payload
+//    Response Payload
 
-    idToken	        string	
-    email	            string	
-    refreshToken	    string	
-    expiresIn      	string	
-    localId	        string	
-    registered     	boolean	
-     */
-    //[RequireHttps]
+//    idToken	        string	
+//    email	            string	
+//    refreshToken	    string	
+//    expiresIn      	string	
+//    localId	        string	
+//    registered     	boolean	
+//     */
+//    //[RequireHttps]
 
 
 
 
     #endregion
 
-    /// <summary>
-    /// DEVELOPMENT
-    /// </summary>
+//    /// <summary>
+//    /// DEVELOPMENT
+//    /// </summary>
     #region Development
-    public class TestAuthenticationService : IAuthenticationService
-    {
+//    public class TestAuthenticationService : IAuthenticationService
+//    {
 
-        private readonly MM_DbContext _dbContext;
+//        private readonly MM_DbContext _dbContext;
 
-        public TestAuthenticationService(MM_DbContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
+//        public TestAuthenticationService(MM_DbContext dbContext)
+//        {
+//            _dbContext = dbContext;
+//        }
 
-        private readonly string FB_URL = "https://identitytoolkit.googleapis.com/v1";
-        private readonly string FB_URL_AUTH = "/accounts";
-        private readonly string FB_URL_TOKEN = "https://securetoken.googleapis.com/v1/token";
-        private readonly string FB_URL_APIKEY = $"?key={Environment.GetEnvironmentVariable("FIREBASE_API_KEY")}";
+//        private readonly string FB_URL = "https://identitytoolkit.googleapis.com/v1";
+//        private readonly string FB_URL_AUTH = "/accounts";
+//        private readonly string FB_URL_TOKEN = "https://securetoken.googleapis.com/v1/token";
+//        private readonly string FB_URL_APIKEY = $"?key={Environment.GetEnvironmentVariable("FIREBASE_API_KEY")}";
 
-        /// <summary>
-        /// Register user with FirebaseAuth and PostgresDB
-        /// </summary>
-        /// 
-        /// <param name="registrationPayload"></param>
-        /// <returns>
-        /// RegistrationResponse or FirebaseError
-        /// </returns>
-        public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
-        {
-            try
-            {
-                string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signUp{FB_URL_APIKEY}";
-                using (var client = new HttpClient())
-                {
-                    var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(registrationPayload), Encoding.UTF8, "application/json"));
-                    string responseBody = await response.Content.ReadAsStringAsync();
+//        /// <summary>
+//        /// Register user with FirebaseAuth and PostgresDB
+//        /// </summary>
+//        /// 
+//        /// <param name="registrationPayload"></param>
+//        /// <returns>
+//        /// RegistrationResponse or FirebaseError
+//        /// </returns>
+//        public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
+//        {
+//            try
+//            {
+//                string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signUp{FB_URL_APIKEY}";
+//                using (var client = new HttpClient())
+//                {
+//                    var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(registrationPayload), Encoding.UTF8, "application/json"));
+//                    string responseBody = await response.Content.ReadAsStringAsync();
 
-                    if (response.IsSuccessStatusCode)
-                    {
-                        RegistrationResponse registrationResponse = JsonConvert.DeserializeObject<RegistrationResponse>(responseBody);
+//                    if (response.IsSuccessStatusCode)
+//                    {
+//                        RegistrationResponse registrationResponse = JsonConvert.DeserializeObject<RegistrationResponse>(responseBody);
 
-                        t_User user = new t_User
-                        {
-                            user_name = registrationResponse.Email.Substring(0, registrationResponse.Email.IndexOf('@')),
-                            user_fb_uuid = registrationResponse.LocalId
-                        };
+//                        t_User user = new t_User
+//                        {
+//                            user_name = registrationResponse.Email.Substring(0, registrationResponse.Email.IndexOf('@')),
+//                            user_fb_uuid = registrationResponse.LocalId
+//                        };
 
-                        await _dbContext.AddAsync(user);
-                        await _dbContext.SaveChangesAsync();
+//                        await _dbContext.AddAsync(user);
+//                        await _dbContext.SaveChangesAsync();
 
-                        return registrationResponse;
-                    }
-                    else //https://learn.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-8.0
-                    {
-                        FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
-                        return firebaseErrorResponse;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
-                //TODO: Implement error logging from service classes and throw from service->controller->client and force client to exit to menu
+//                        return registrationResponse;
+//                    }
+//                    else //https://learn.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-8.0
+//                    {
+//                        FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
+//                        return firebaseErrorResponse;
+//                    }
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+//                //TODO: Implement error logging from service classes and throw from service->controller->client and force client to exit to menu
 
-                //In future implementations:
-                //1. May implement PostgresDB error logging
+//                //In future implementations:
+//                //1. May implement PostgresDB error logging
 
-            }
-            return null; //Reaches here only if Internal Server Error?
-        }
+//            }
+//            return null; //Reaches here only if Internal Server Error?
+//        }
 
-        /*       SIGNIN DTO
-        ________________________________|
-        SignInPayload                   |
-        ________________________________|
-                                        |
-        email	          |  string	    |
-        password	      |  string	    |
-        returnSecureToken |	 boolean	|
-                          |             |
-        ________________________________|
-        SignInResponse    |             |
-        ________________________________|
-                          |             |
-        idToken	          |  string	    |
-        email	          |  string	    |
-        refreshToken	  |  string	    |
-        expiresIn         |  string	    |
-        localId	          |  string	    |
-        registered        |  boolean	|
-         */
+//        /*       SIGNIN DTO
+//        ________________________________|
+//        SignInPayload                   |
+//        ________________________________|
+//                                        |
+//        email	          |  string	    |
+//        password	      |  string	    |
+//        returnSecureToken |	 boolean	|
+//                          |             |
+//        ________________________________|
+//        SignInResponse    |             |
+//        ________________________________|
+//                          |             |
+//        idToken	          |  string	    |
+//        email	          |  string	    |
+//        refreshToken	  |  string	    |
+//        expiresIn         |  string	    |
+//        localId	          |  string	    |
+//        registered        |  boolean	|
+//         */
 
-        //[RequireHttps]
-        public async Task<ISignInResponse> LoginAsync(SignInPayload loginPayload)
-        {
-            try
-            {
-                string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signInWithPassword{FB_URL_APIKEY}";
-                using (var client = new HttpClient())
-                {
-                    var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(loginPayload), Encoding.UTF8, "application/json"));
-                    string responseBody = await response.Content.ReadAsStringAsync();
+//        //[RequireHttps]
+//        public async Task<ISignInResponse> LoginAsync(SignInPayload loginPayload)
+//        {
+//            try
+//            {
+//                string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signInWithPassword{FB_URL_APIKEY}";
+//                using (var client = new HttpClient())
+//                {
+//                    var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(loginPayload), Encoding.UTF8, "application/json"));
+//                    string responseBody = await response.Content.ReadAsStringAsync();
 
-                    if (response.IsSuccessStatusCode)
-                    {
-                        SignInResponse signInResponse = JsonConvert.DeserializeObject<SignInResponse>(responseBody);
+//                    if (response.IsSuccessStatusCode)
+//                    {
+//                        SignInResponse signInResponse = JsonConvert.DeserializeObject<SignInResponse>(responseBody);
 
-                        t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == signInResponse.LocalId);  //fk_user_id == user.user_id
-                        System.Diagnostics.Debug.WriteLine($"{user.user_id} - {user.user_fb_uuid} - {user.user_name}");
-                        t_Session session = new t_Session()
-                        {
-                            fk_user_id = user.user_id,
-                            session_authtoken = signInResponse.AuthToken,
-                            session_refreshtoken = signInResponse.RefreshToken,
-                            session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
-                            session_loggedout = DateTimeOffset.MinValue,
-                            session_sessiontoken = "0"
-                        };
+//                        t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == signInResponse.LocalId);  //fk_user_id == user.user_id
+//                        System.Diagnostics.Debug.WriteLine($"{user.user_id} - {user.user_fb_uuid} - {user.user_name}");
+//                        t_Session session = new t_Session()
+//                        {
+//                            fk_user_id = user.user_id,
+//                            session_authtoken = signInResponse.AuthToken,
+//                            session_refreshtoken = signInResponse.RefreshToken,
+//                            session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
+//                            session_loggedout = DateTimeOffset.MinValue,
+//                            session_sessiontoken = "0"
+//                        };
 
-                        await _dbContext.AddAsync(session);
-                        await _dbContext.SaveChangesAsync();
+//                        await _dbContext.AddAsync(session);
+//                        await _dbContext.SaveChangesAsync();
 
-                        return signInResponse;
-                    }
-                    else
-                    {
-                        FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
-                        return firebaseErrorResponse;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Login failed: {ex.Message}");
-            }
-            return null;
-        }
+//                        return signInResponse;
+//                    }
+//                    else
+//                    {
+//                        FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
+//                        return firebaseErrorResponse;
+//                    }
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                System.Diagnostics.Debug.WriteLine($"Login failed: {ex.Message}");
+//            }
+//            return null;
+//        }
 
-        //[RequireHttps]
-        public async Task<ISignOutResponse> LogoutAsync(SignOutPayload logoutPayload)
-        {
-            try
-            {
-                t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == logoutPayload.LocalId);
-                t_Session recentSession = await _dbContext.t_session
-                    .Where(s => s.fk_user_id == user.user_id)
-                    .OrderByDescending(s => s.session_loggedin)
-                    .FirstAsync();
+//        //[RequireHttps]
+//        public async Task<ISignOutResponse> LogoutAsync(SignOutPayload logoutPayload)
+//        {
+//            try
+//            {
+//                t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == logoutPayload.LocalId);
+//                t_Session recentSession = await _dbContext.t_session
+//                    .Where(s => s.fk_user_id == user.user_id)
+//                    .OrderByDescending(s => s.session_loggedin)
+//                    .FirstAsync();
 
-                if (recentSession.session_loggedout == DateTimeOffset.MinValue)
-                {
-                    recentSession.session_authtoken = "0";
-                    recentSession.session_refreshtoken = "0";
-                    recentSession.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
+//                if (recentSession.session_loggedout == DateTimeOffset.MinValue)
+//                {
+//                    recentSession.session_authtoken = "0";
+//                    recentSession.session_refreshtoken = "0";
+//                    recentSession.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
 
-                    await _dbContext.SaveChangesAsync();
+//                    await _dbContext.SaveChangesAsync();
 
-                    SignOutResponse signOutResponse = new SignOutResponse()
-                    {
-                        AuthToken = recentSession.session_sessiontoken,
-                        RefreshToken = recentSession.session_refreshtoken,
-                        LocalId = user.user_fb_uuid
-                    };
-                    return signOutResponse;
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"Logout failed: {user.user_id} - {recentSession.session_id}");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Logout failed: {ex.Message}");
+//                    SignOutResponse signOutResponse = new SignOutResponse()
+//                    {
+//                        AuthToken = recentSession.session_sessiontoken,
+//                        RefreshToken = recentSession.session_refreshtoken,
+//                        LocalId = user.user_fb_uuid
+//                    };
+//                    return signOutResponse;
+//                }
+//                else
+//                {
+//                    System.Diagnostics.Debug.WriteLine($"Logout failed: {user.user_id} - {recentSession.session_id}");
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                System.Diagnostics.Debug.WriteLine($"Logout failed: {ex.Message}");
 
-            }
-            return null;
-        }
+//            }
+//            return null;
+//        }
 
-        public async Task<IRefreshTokenResponse> RefreshIdToken(RefreshTokenPayload refreshTokenPayload)
-        {
-            ////needs to update user's existing refresh + id tokens in PSQL DB
-            //try
-            //{
-            //    string fb_uri = $"{FB_URL_TOKEN}{FB_URL_APIKEY}";
-            //    // var deserialisedRefreshTokenPayload = JsonConvert.DeserializeObject<RefreshTokenPayload>(refreshTokenPayload);
+//        public async Task<IRefreshTokenResponse> RefreshIdToken(RefreshTokenPayload refreshTokenPayload)
+//        {
+//            ////needs to update user's existing refresh + id tokens in PSQL DB
+//            //try
+//            //{
+//            //    string fb_uri = $"{FB_URL_TOKEN}{FB_URL_APIKEY}";
+//            //    // var deserialisedRefreshTokenPayload = JsonConvert.DeserializeObject<RefreshTokenPayload>(refreshTokenPayload);
 
-            //    //var content = new FormUrlEncodedContent(new[]
-            //    // {
-            //    //   new KeyValuePair<string, string>("grant_type", "refresh_token"),
-            //    //   new KeyValuePair<string, string>("refresh_token", payload.RefreshToken)
-            //    // });
-            //    using (var client = new HttpClient())
-            //    {
-            //        var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(refreshTokenPayload), Encoding.UTF8, "application/json"));
-            //        if (response.IsSuccessStatusCode)
-            //        {
-            //            // Read the response content
-            //            string responseBody = await response.Content.ReadAsStringAsync();
+//            //    //var content = new FormUrlEncodedContent(new[]
+//            //    // {
+//            //    //   new KeyValuePair<string, string>("grant_type", "refresh_token"),
+//            //    //   new KeyValuePair<string, string>("refresh_token", payload.RefreshToken)
+//            //    // });
+//            //    using (var client = new HttpClient())
+//            //    {
+//            //        var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(refreshTokenPayload), Encoding.UTF8, "application/json"));
+//            //        if (response.IsSuccessStatusCode)
+//            //        {
+//            //            // Read the response content
+//            //            string responseBody = await response.Content.ReadAsStringAsync();
 
-            //            // Deserialize the response JSON to a RefreshTokenResponse object
-            //            var refreshTokenResponse = JsonConvert.DeserializeObject<RefreshTokenResponse>(responseBody);
+//            //            // Deserialize the response JSON to a RefreshTokenResponse object
+//            //            var refreshTokenResponse = JsonConvert.DeserializeObject<RefreshTokenResponse>(responseBody);
 
-            //            //IS THIS SERIALISED ALREADY? IF SO NO NEED TO RESERIALISE
+//            //            //IS THIS SERIALISED ALREADY? IF SO NO NEED TO RESERIALISE
 
-            //            // Return the RefreshTokenResponse object
+//            //            // Return the RefreshTokenResponse object
 
-            //            return refreshTokenResponse;
-            //        }
-            //        else
-            //        {
-            //            string error = await response.Content.ReadAsStringAsync();
+//            //            return refreshTokenResponse;
+//            //        }
+//            //        else
+//            //        {
+//            //            string error = await response.Content.ReadAsStringAsync();
 
-            //            if (error.Contains("TOKEN_EXPIRED"))//MOVE TO CONTROLLER???
-            //            {
-            //                Console.WriteLine(error);
-            //            }
+//            //            if (error.Contains("TOKEN_EXPIRED"))//MOVE TO CONTROLLER???
+//            //            {
+//            //                Console.WriteLine(error);
+//            //            }
 
-            //        }
-            //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    System.Diagnostics.Debug.WriteLine($"RefreshToken Failed: {ex}");
-            //}
-            return null;
-        }
-    }
+//            //        }
+//            //    }
+//            //}
+//            //catch (Exception ex)
+//            //{
+//            //    System.Diagnostics.Debug.WriteLine($"RefreshToken Failed: {ex}");
+//            //}
+//            return null;
+//        }
+//    }
 
-}
+//}
 
 #endregion
 

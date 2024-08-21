@@ -15,7 +15,7 @@ namespace Database.Postgres.DbSchema
 
     public string session_authtoken { get; set; }
 
-    public string session_sessiontoken { get; set; }
+   // public string session_sessiontoken { get; set; }
 
     public string session_refreshtoken { get; set; }
 

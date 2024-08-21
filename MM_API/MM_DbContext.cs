@@ -1,8 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
-//
 using System.Diagnostics.CodeAnalysis;
 using Database.Postgres.DbSchema;
+
 
 namespace MM_API
 {

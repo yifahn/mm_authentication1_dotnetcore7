@@ -1,37 +1,63 @@
 using Microsoft.EntityFrameworkCore;
-using MM_API.Services;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-//using Microsoft.AspNetCore.Authentication;
-
-
-
+using System.Text;
 namespace MM_API
 {
     public class Program
     {
-
         public static void Main(string[] args)
         {
             //CREATE WEBAPP BUILDER
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+
+
+            builder.Services.AddAuthentication(options =>
             {
-                builder.Configuration.Bind("JwtSettings", options);
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!))
+                };
             });
 
+    //        builder.Services.AddIdentityApiEndpoints<IdentityUser>(options =>
+    //        {
+    //            options.Password.RequiredLength = 6;
+    //            options.Password.RequireNonAlphanumeric = false;
+    //            options.Password.RequireDigit = false;
+    //            options.Password.RequireUppercase = false;
+    //            options.Password.RequireLowercase = false;
+    //        })
+    // .AddRoles<IdentityRole>()
+    //.AddEntityFrameworkStores<MM_DbContext>();
 
+
+            //builder.Services.AddAuthentication().AddBearerToken(IdentityConstants.BearerScheme, o =>
+            //{
+            //    o.BearerTokenExpiration = TimeSpan.FromSeconds(60);
+            //});
 
             // ADD SERVICES - DI ALLOWS TEST / NONTEST SERVICES
             builder.Services
-                .AddScoped<IArmouryService, TestArmouryService>()
-                .AddScoped<IAuthenticationService, TestAuthenticationService>()
-                .AddScoped<IBattleboardService, TestBattleboardService>()
-                .AddScoped<ICharacterService, TestCharacterService>()
-                .AddScoped<IKingdomService, TestKingdomService>()
-                .AddScoped<ISoupkitchenService, TestSoupkitchenService>()
-                .AddScoped<ITreasuryService, TestTreasuryService>();
+
+                .AddScoped<Services.IArmouryService, Services.TestArmouryService>()
+                //.AddScoped<Services.IAuthenticationService, Services.TestAuthenticationService>()
+                .AddScoped<Services.IBattleboardService, Services.TestBattleboardService>()
+                .AddScoped<Services.ICharacterService, Services.TestCharacterService>()
+                .AddScoped<Services.IKingdomService, Services.TestKingdomService>()
+                .AddScoped<Services.ISoupkitchenService, Services.TestSoupkitchenService>()
+                .AddScoped<Services.ITreasuryService, Services.TestTreasuryService>();
 
             // POSTGRESQL CONNECTION
             builder.Services.AddDbContext<MM_DbContext>(options =>
@@ -48,6 +74,8 @@ namespace MM_API
             // NEW WEBAPP
             var app = builder.Build();
 
+            //app.MapIdentityApi<IdentityUser>();
+
             // USE SWAGGER IF DEVELOPING
             if (app.Environment.IsDevelopment())
             {
@@ -56,8 +84,9 @@ namespace MM_API
             }
 
             // MISC
-            //app.UseAuthentication();
-            //app.UseAuthorization();
+            app.UseAuthentication();
+
+            app.UseAuthorization();
             app.MapControllers();
 
             // RUN
@@ -65,6 +94,34 @@ namespace MM_API
         }
     }
 }
+//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+//{
+//    builder.Configuration.Bind("JwtSettings", options);
+
+
+//});
+
+//builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+//{
+//    options.Password.RequiredLength = 6;
+//    options.Password.RequireNonAlphanumeric = false;
+//    options.Password.RequireDigit = false;
+//    options.Password.RequireUppercase = false;
+//    options.Password.RequireLowercase = false;
+//});
+//.AddEntityFrameworkStores<MM_DbContext>()
+//.AddDefaultTokenProviders();
+
+
+
+//builder.Services.AddAuthorization(options =>
+//{
+//    options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
+//    options.AddPolicy("UserPolicy", policy => policy.RequireRole("User"));
+//});
+
+
+
 
 //builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 //    .AddJwtBearer(o =>

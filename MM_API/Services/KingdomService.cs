@@ -3,6 +3,7 @@ using System.Text;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
 using SharedNetworkFramework.Game.Kingdom.Map;
+using Microsoft.AspNetCore.Identity;
 
 namespace MM_API.Services
 {
@@ -67,9 +68,11 @@ namespace MM_API.Services
     {
         private readonly MM_DbContext _dbContext;
 
+
         public KingdomService(MM_DbContext dbContext)
         {
             _dbContext = dbContext;
+
         }
 
         public async Task<IMapNewResponse> NewMap(MapNewPayload mapNewPayload)
@@ -92,9 +95,11 @@ namespace MM_API.Services
     {
         private readonly MM_DbContext _dbContext;
 
+
         public TestKingdomService(MM_DbContext dbContext)
         {
             _dbContext = dbContext;
+
         }
 
         public async Task<IMapNewResponse> NewMap(MapNewPayload mapNewPayload)

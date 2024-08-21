@@ -2,6 +2,7 @@
 using System.Text;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace MM_API.Services
 {
@@ -11,6 +12,12 @@ namespace MM_API.Services
     #region Production
     public class CharacterService : ICharacterService
     {
+        private readonly MM_DbContext _dbContext;
+
+        public CharacterService(MM_DbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
     }
     #endregion
     #region Development

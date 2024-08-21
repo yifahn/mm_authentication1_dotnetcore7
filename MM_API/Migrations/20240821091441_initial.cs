@@ -11,7 +11,7 @@ using SharedGameFramework.Game.Kingdom.Map;
 namespace MM_API.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -22,8 +22,7 @@ namespace MM_API.Migrations
                 {
                     user_id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    user_name = table.Column<string>(type: "text", nullable: false),
-                    user_fb_uuid = table.Column<string>(type: "text", nullable: false)
+                    user_name = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -59,7 +58,6 @@ namespace MM_API.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     fk_user_id = table.Column<int>(type: "integer", nullable: false),
                     session_authtoken = table.Column<string>(type: "text", nullable: false),
-                    session_sessiontoken = table.Column<string>(type: "text", nullable: false),
                     session_refreshtoken = table.Column<string>(type: "text", nullable: false),
                     session_loggedin = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
                     session_loggedout = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
