@@ -1,7 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.UI;
 using System.Text;
+using Microsoft.AspNetCore.Identity;
+using Database.Postgres.DbSchema;
+
+
 namespace MM_API
 {
     public class Program
@@ -11,14 +17,36 @@ namespace MM_API
             //CREATE WEBAPP BUILDER
             var builder = WebApplication.CreateBuilder(args);
 
+            // POSTGRESQL CONNECTION
+            builder.Services.AddDbContext<MM_DbContext>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
+            System.Diagnostics.Debug.WriteLine($"Connection String: {builder.Configuration.GetConnectionString("Db")}");
 
+
+            #region Authentication & Authorization
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy("Admin", policy => policy.RequireUserName("yifahn"));
+            });
+
+            builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+            {
+                options.Password.RequiredLength = 6;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireDigit = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireLowercase = false;
+            })
+                .AddRoles<IdentityRole>()
+                .AddEntityFrameworkStores<MM_DbContext>();
 
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(options =>
+            })
+                .AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
@@ -30,23 +58,9 @@ namespace MM_API
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!))
                 };
             });
+            #endregion
 
-    //        builder.Services.AddIdentityApiEndpoints<IdentityUser>(options =>
-    //        {
-    //            options.Password.RequiredLength = 6;
-    //            options.Password.RequireNonAlphanumeric = false;
-    //            options.Password.RequireDigit = false;
-    //            options.Password.RequireUppercase = false;
-    //            options.Password.RequireLowercase = false;
-    //        })
-    // .AddRoles<IdentityRole>()
-    //.AddEntityFrameworkStores<MM_DbContext>();
-
-
-            //builder.Services.AddAuthentication().AddBearerToken(IdentityConstants.BearerScheme, o =>
-            //{
-            //    o.BearerTokenExpiration = TimeSpan.FromSeconds(60);
-            //});
+          
 
             // ADD SERVICES - DI ALLOWS TEST / NONTEST SERVICES
             builder.Services
@@ -59,10 +73,6 @@ namespace MM_API
                 .AddScoped<Services.ISoupkitchenService, Services.TestSoupkitchenService>()
                 .AddScoped<Services.ITreasuryService, Services.TestTreasuryService>();
 
-            // POSTGRESQL CONNECTION
-            builder.Services.AddDbContext<MM_DbContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
-            System.Diagnostics.Debug.WriteLine($"Connection String: {builder.Configuration.GetConnectionString("Db")}");
 
             // ADD CONTROLLERS
             builder.Services.AddControllers().AddNewtonsoftJson(o => { });

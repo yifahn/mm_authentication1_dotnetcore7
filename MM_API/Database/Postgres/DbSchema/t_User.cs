@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 
 namespace Database.Postgres.DbSchema
 {
-    public class t_User
+    public class t_User 
     {
         [Key]
         public int user_id { get; set; }

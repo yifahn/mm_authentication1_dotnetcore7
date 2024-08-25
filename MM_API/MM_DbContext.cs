@@ -1,14 +1,17 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 using Database.Postgres.DbSchema;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+
 
 
 namespace MM_API
 {
-    public class MM_DbContext : DbContext
+    public class MM_DbContext : IdentityDbContext<IdentityUser>
     {
         public MM_DbContext(DbContextOptions<MM_DbContext> options) : base(options) { }
-       
+
         [AllowNull]
         public DbSet<t_User> t_user { get; set; }
         [AllowNull]
