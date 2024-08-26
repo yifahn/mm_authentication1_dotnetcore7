@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Numerics;
 
-namespace Database.Postgres.DbSchema
+namespace MM_API.Database.Postgres.DbSchema
 {
   public class t_Treasury
   {

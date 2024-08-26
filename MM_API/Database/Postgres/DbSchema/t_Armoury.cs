@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using SharedGameFramework.Game.Armoury;
 
 
-namespace Database.Postgres.DbSchema
+namespace MM_API.Database.Postgres.DbSchema
 {
     public class t_Armoury
   {

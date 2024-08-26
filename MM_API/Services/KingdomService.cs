@@ -1,9 +1,11 @@
-﻿using Database.Postgres.DbSchema;
+﻿using MM_API.Database.Postgres.DbSchema;
 using System.Text;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;
 using SharedNetworkFramework.Game.Kingdom.Map;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
 namespace MM_API.Services
 {
@@ -93,17 +95,22 @@ namespace MM_API.Services
     #region Development
     public class TestKingdomService : IKingdomService
     {
+       // private readonly SignInManager<IdentityUser> _signInManager;
         private readonly MM_DbContext _dbContext;
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-
-        public TestKingdomService(MM_DbContext dbContext)
+        public TestKingdomService(MM_DbContext dbContext, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             _dbContext = dbContext;
-
+            _userManager = userManager;
+            _roleManager = roleManager;
         }
-
+        [Authorize(Policy = "NewGamePolicy")]
         public async Task<IMapNewResponse> NewMap(MapNewPayload mapNewPayload)
         {
+            var user = await _userManager.FindByNameAsync("test123");
+            await _userManager.RemoveFromRoleAsync(user, "NewGame");
             return null;
         }
         public async Task<IMapLoadResponse> LoadMap(MapLoadPayload mapLoadPayload)
@@ -133,7 +140,7 @@ namespace MM_API.Services
     //                var userRecord = JsonConvert.DeserializeObject<RegistrationResponse>(responseBody);
 
     //                var handler = new JwtSecurityTokenHandler();
-    //                var jsonToken = handler.ReadToken(userRecord.AuthToken) as JwtSecurityToken;
+    //                var jsonToken = handler.ReadToken(userRecord.AccessToken) as JwtSecurityToken;
     //                if (jsonToken == null)
     //                {
     //                    throw new InvalidOperationException("Invalid JWT token");
@@ -146,7 +153,7 @@ namespace MM_API.Services
     //                t_Session session = new t_Session()
     //                {
     //                    user = user,
-    //                    session_authtoken = userRecord.AuthToken,
+    //                    session_authtoken = userRecord.AccessToken,
     //                    session_refreshtoken = userRecord.RefreshToken,
     //                    session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
     //                    session_sessiontoken = "0"

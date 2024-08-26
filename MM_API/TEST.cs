@@ -15,7 +15,7 @@ namespace MM_API
         private readonly string _jwtSecret = "your-secret-key"; // Replace with your actual secret key
 
         [HttpPost("login")]
-        public async Task<IActionResult> LoginAsync([FromBody] LoginRequest loginRequest)
+        public async Task<IActionResult> SignInAsync([FromBody] LoginRequest loginRequest)
         {
             try
             {
@@ -29,7 +29,7 @@ namespace MM_API
                     var token = GenerateJwtToken(user.UserId); // You can customize this method
 
                     // Return the token to the client
-                    return Ok(new { Message = "Login successful", AuthToken = token });
+                    return Ok(new { Message = "Login successful", AccessToken = token });
                 }
                 else
                 {
@@ -72,7 +72,7 @@ namespace MM_API
                 issuer: "your-issuer",
                 audience: "your-audience",
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(1), // AuthToken expiration time
+                expires: DateTime.UtcNow.AddHours(1), // AccessToken expiration time
                 signingCredentials: credentials
             );
 

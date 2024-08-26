@@ -1,17 +1,19 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using System.Text;
+
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.UI;
-using System.Text;
-using Microsoft.AspNetCore.Identity;
-using Database.Postgres.DbSchema;
 
+using MM_API.Database.Postgres.DbSchema;
 
 namespace MM_API
 {
     public class Program
     {
+
         public static void Main(string[] args)
         {
             //CREATE WEBAPP BUILDER
@@ -26,8 +28,10 @@ namespace MM_API
             #region Authentication & Authorization
             builder.Services.AddAuthorization(options =>
             {
-                options.AddPolicy("Admin", policy => policy.RequireUserName("yifahn"));
+                options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
+                options.AddPolicy("NewGamePolicy", policy => policy.RequireRole("NewGame"));
             });
+
 
             builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
             {
@@ -66,7 +70,7 @@ namespace MM_API
             builder.Services
 
                 .AddScoped<Services.IArmouryService, Services.TestArmouryService>()
-                //.AddScoped<Services.IAuthenticationService, Services.TestAuthenticationService>()
+                .AddScoped<Services.IAuthenticationService, Services.TestAuthenticationService>()
                 .AddScoped<Services.IBattleboardService, Services.TestBattleboardService>()
                 .AddScoped<Services.ICharacterService, Services.TestCharacterService>()
                 .AddScoped<Services.IKingdomService, Services.TestKingdomService>()
@@ -83,7 +87,7 @@ namespace MM_API
 
             // NEW WEBAPP
             var app = builder.Build();
-
+        
             //app.MapIdentityApi<IdentityUser>();
 
             // USE SWAGGER IF DEVELOPING

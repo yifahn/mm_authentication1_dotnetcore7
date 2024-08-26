@@ -1,4 +1,4 @@
-﻿using Database.Postgres.DbSchema;
+﻿using MM_API.Database.Postgres.DbSchema;
 using System.Text;
 using Newtonsoft.Json;
 using Microsoft.EntityFrameworkCore;

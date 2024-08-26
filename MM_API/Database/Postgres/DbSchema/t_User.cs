@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 
-namespace Database.Postgres.DbSchema
+namespace MM_API.Database.Postgres.DbSchema
 {
     public class t_User 
     {
