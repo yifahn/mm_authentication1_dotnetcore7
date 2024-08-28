@@ -1,24 +1,22 @@
 {
   "profiles": {
-    ///development
     "MM_API_Development": {
       "commandName": "Project",
       "launchBrowser": true,
       "launchUrl": "swagger",
-      "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5223",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5223"
     },
-    ///production
     "MM_API_Production": {
       "commandName": "Project",
-      "launchBrowser": false, // Typically, you don't launch a browser in production.
-      "applicationUrl": "http://your-production-url", // Set to your production URL.
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Production" // Sets the environment to Production.
-      }
+        "ASPNETCORE_ENVIRONMENT": "Production",
+        "ADMIN_PASSWORD": ""
+      },
+      "applicationUrl": "http://your-production-url"
     }
   }
 }

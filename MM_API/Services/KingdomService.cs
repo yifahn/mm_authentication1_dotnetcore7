@@ -6,6 +6,8 @@ using SharedNetworkFramework.Game.Kingdom.Map;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+using System.Security.Claims;
 
 namespace MM_API.Services
 {
@@ -99,22 +101,38 @@ namespace MM_API.Services
         private readonly MM_DbContext _dbContext;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public TestKingdomService(MM_DbContext dbContext, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager)
+        public TestKingdomService(MM_DbContext dbContext, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IHttpContextAccessor httpContextAccessor)
         {
             _dbContext = dbContext;
             _userManager = userManager;
             _roleManager = roleManager;
+            _httpContextAccessor = httpContextAccessor;
         }
-        [Authorize(Policy = "NewGamePolicy")]
-        public async Task<IMapNewResponse> NewMap(MapNewPayload mapNewPayload)
-        {
-            var user = await _userManager.FindByNameAsync("test123");
-            await _userManager.RemoveFromRoleAsync(user, "NewGame");
-            return null;
-        }
+        //[Authorize(Policy = "NewGamePolicy")]
+        //public async Task<IMapNewResponse> NewMap(MapNewPayload mapNewPayload)
+        //{
+        //    var user = await _userManager.FindByNameAsync("test123");
+        //    await _userManager.RemoveFromRoleAsync(user, "NewGame");
+        //    return null;
+        //}
+        [Authorize(Policy = "UserPolicy")]
         public async Task<IMapLoadResponse> LoadMap(MapLoadPayload mapLoadPayload)
         {
+            var email = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+            var user = await _userManager.FindByEmailAsync(email);
+            var userClaims = await _userManager.GetClaimsAsync(user);
+            var newGameClaim = userClaims.FirstOrDefault(c => c.Type == "NewGame" && c.Value == "true");
+            if (newGameClaim != null)
+            {
+
+
+
+                await _userManager.RemoveClaimAsync(user, newGameClaim);
+                var newClaim = new Claim("NewGame", "false");
+                await _userManager.AddClaimAsync(user, newClaim);
+            }
             return null;
         }
         public async Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload mapUpdatePayload)

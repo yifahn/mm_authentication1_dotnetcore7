@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using Newtonsoft.Json;
-using Microsoft.EntityFrameworkCore;
+
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -13,8 +13,10 @@ using SharedNetworkFramework.Authentication.Firebase.Register;
 using SharedNetworkFramework.Authentication.Firebase.SignIn;
 using SharedNetworkFramework.Authentication.Firebase.RefreshToken;
 
-using MM_API.ErrorHandler;
 using MM_API.Database.Postgres.DbSchema;
+using MM_API.ErrorHandler;
+using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
 
 namespace MM_API.Services
 {
@@ -70,14 +72,14 @@ namespace MM_API.Services
 
                         t_User user = new t_User
                         {
-                       //     user_name = registrationResponse.Email.Substring(0, registrationResponse.Email.IndexOf('@')),
+                            //     user_name = registrationResponse.Email.Substring(0, registrationResponse.Email.IndexOf('@')),
 
                         };
                         t_Session session = new t_Session()
                         {
                             user = user,
-                         //   session_authtoken = registrationResponse.AuthToken,
-                         //   session_refreshtoken = registrationResponse.RefreshToken,
+                            //   session_authtoken = registrationResponse.AuthToken,
+                            //   session_refreshtoken = registrationResponse.RefreshToken,
                             session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
 
                         };
@@ -219,17 +221,19 @@ namespace MM_API.Services
         private readonly SignInManager<IdentityUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
+        //  private readonly ClaimsPrincipal _claimsPrincipal;
+
+        private readonly HttpContextAccessor _contextAccessor;
 
 
-        public TestAuthenticationService(MM_DbContext dbContext, UserManager<IdentityUser> identityUser, SignInManager<IdentityUser> signInManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)
+        public TestAuthenticationService(MM_DbContext dbContext, UserManager<IdentityUser> identityUser, SignInManager<IdentityUser> signInManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, HttpContextAccessor contextAccessor)//, ClaimsPrincipal claimsPrincipal
         {
             _dbContext = dbContext;
             _userManager = identityUser;
             _roleManager = roleManager;
             _signInManager = signInManager;
-
             _configuration = configuration;
-
+            _contextAccessor = contextAccessor;
         }
 
         //private readonly string FB_URL = "https://identitytoolkit.googleapis.com/v1";
@@ -247,60 +251,27 @@ namespace MM_API.Services
         /// </returns>
         public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
         {
-
             try
             {
-                var rolesList = new[] { "Admin", "User", "NewGame" };
-
-                foreach (var role in rolesList)
-                {
-                    if (!await _roleManager.RoleExistsAsync(role))
-                    {
-                        await _roleManager.CreateAsync(new IdentityRole(role));
-                    }
-                }
-
                 var identityUser = new IdentityUser()
                 {
                     Id = Guid.NewGuid().ToString(),
-                    UserName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')),
+                    UserName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
                     Email = registrationPayload.Email
                 };
-                //add user into database for authentication and authorisation
                 var userResult = await _userManager.CreateAsync(identityUser, registrationPayload.Password);
+                var claimsResult = await _userManager.AddToRoleAsync(identityUser, "User");
 
-                if (!identityUser.UserName.ToLower().Equals("yifahn")) //for testing admin endpoints
-                {
-                    var roles = new List<string>
-                    {
-                        "User",
-                        "NewGame"
-                    };
-                    var claimsResult = await _userManager.AddToRolesAsync(identityUser, roles);
-                }
-                else
-                {
-                    var roles = new List<string>
-                    {
-                        "User",
-                        "Admin",
-                        "NewGame"
-                    };
-                    var claimsResult = await _userManager.AddToRolesAsync(identityUser, roles);
-                }
-
-
-                //add user into database for game use
                 t_User user = new t_User()
                 {
-                    user_name = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')),
+                    user_name = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
                 };
                 await _dbContext.AddAsync(user);
                 await _dbContext.SaveChangesAsync();
 
                 return new RegistrationResponse()
                 {
-                    Username = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')),
+                    Username = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
                 };
             }
             ///internally log error with accurate stack info - do not throw
@@ -337,104 +308,118 @@ namespace MM_API.Services
         {
             try
             {
-               // string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signInWithPassword{FB_URL_APIKEY}";
-                using (var client = new HttpClient())
+                var user = await _userManager.FindByEmailAsync(loginPayload.Email);
+                if (user == null)
                 {
-                    var response = await client.PostAsync("fb_uri", new StringContent(JsonConvert.SerializeObject(loginPayload), Encoding.UTF8, "application/json"));
-                    string responseBody = await response.Content.ReadAsStringAsync();
-
-                    if (response.IsSuccessStatusCode)
+                    return new AuthenticationErrorHandler
                     {
-                        SignInResponse signInResponse = JsonConvert.DeserializeObject<SignInResponse>(responseBody);
-
-                      //  t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == signInResponse.LocalId);  //fk_user_id == user.user_id
-                      //  System.Diagnostics.Debug.WriteLine($"{user.user_id} - {user.user_fb_uuid} - {user.user_name}");
-                        t_Session session = new t_Session()
+                        Errors = [new IdentityError
                         {
-                       //     fk_user_id = user.user_id,
-                            session_authtoken = signInResponse.AccessToken,
-                            session_refreshtoken = signInResponse.RefreshToken,
-                            session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
-                            session_loggedout = DateTimeOffset.MinValue,
-
-                        };
-
-                        await _dbContext.AddAsync(session);
-                        await _dbContext.SaveChangesAsync();
-
-                        return signInResponse;
-                    }
-                    else
-                    {
-                        //   FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
-                        return null;// firebaseErrorResponse;
-                    }
+                            Code = "Bad Credentials",
+                            Description = "Invalid email or password."
+                        }]
+                    };
                 }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Login failed: {ex.Message}");
-            }
-            return null;
-        }
 
+                var signInResult = await _signInManager.CheckPasswordSignInAsync(user, loginPayload.Password, lockoutOnFailure: false);
+
+                if (!signInResult.Succeeded)
+                {
+                    return new AuthenticationErrorHandler
+                    {
+                        Errors = [new IdentityError
+                        {
+                            Code = "Bad Credentials",
+                            Description = "Invalid email or password."
+                        }]
+                    };
+                }
+
+                string authToken = await GenerateJwtTokenAsync(user);
+                string refreshToken = await GenerateRefreshTokenAsync()
+
+                t_Session session = new t_Session
+                {
+                    session_refreshtoken
+                    session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
+                    session_loggedout = DateTimeOffset.MinValue,
+                };
+
+                await _dbContext.AddAsync(session);
+                await _dbContext.SaveChangesAsync();
+
+                // Generate and return a response with a JWT token or other details as required
+                return new SignInResponse
+                {
+                    Username = user.UserName,
+                    AccessToken = await GenerateJwtTokenAsync(user),
+                    RefreshToken = await GenerateAndStoreRefreshTokenAsync(user)
+                };
+
+
+            }
+            }
         [RequireHttps]
         [Authorize]
         public async Task<ISignOutResponse> SignOutAsync(SignOutPayload logoutPayload)
         {
-          //  try
-           // {
-               // t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == logoutPayload.LocalId);
-              //  t_Session recentSession = await _dbContext.t_session
-                   // .Where(s => s.fk_user_id == user.user_id)
-                 //   .OrderByDescending(s => s.session_loggedin)
-                  //  .FirstAsync();
+            //  try
+            // {
+            // t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == logoutPayload.LocalId);
+            //  t_Session recentSession = await _dbContext.t_session
+            // .Where(s => s.fk_user_id == user.user_id)
+            //   .OrderByDescending(s => s.session_loggedin)
+            //  .FirstAsync();
 
-               // if (recentSession.session_loggedout == DateTimeOffset.MinValue)
-              //  {
-                //    recentSession.session_authtoken = "0";
-                //    recentSession.session_refreshtoken = "0";
-                //    recentSession.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
+            // if (recentSession.session_loggedout == DateTimeOffset.MinValue)
+            //  {
+            //    recentSession.session_authtoken = "0";
+            //    recentSession.session_refreshtoken = "0";
+            //    recentSession.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
 
-                 //   await _dbContext.SaveChangesAsync();
+            //   await _dbContext.SaveChangesAsync();
 
-                   // SignOutResponse signOutResponse = new SignOutResponse()
-                  //  {
-                      //  AuthToken = recentSession.session_sessiontoken,
-                //        RefreshToken = recentSession.session_refreshtoken,
-                     //   LocalId = user.user_fb_uuid
-                  //  };
-                  //  return signOutResponse;
-              //  }
-              //  else
-               // {
-                  //  System.Diagnostics.Debug.WriteLine($"Logout failed: {user.user_id} - {recentSession.session_id}");
-              //  }
-           // }
-           // catch (Exception ex)
-           // {
+            // SignOutResponse signOutResponse = new SignOutResponse()
+            //  {
+            //  AuthToken = recentSession.session_sessiontoken,
+            //        RefreshToken = recentSession.session_refreshtoken,
+            //   LocalId = user.user_fb_uuid
+            //  };
+            //  return signOutResponse;
+            //  }
+            //  else
+            // {
+            //  System.Diagnostics.Debug.WriteLine($"Logout failed: {user.user_id} - {recentSession.session_id}");
+            //  }
+            // }
+            // catch (Exception ex)
+            // {
             //    System.Diagnostics.Debug.WriteLine($"Logout failed: {ex.Message}");
 
-           // }
+            // }
             return null;
         }
-        [Authorize(Policy = "NewGamePolicy")]
         public async Task<IRefreshTokenResponse> RefreshTokenAsync(RefreshTokenPayload refreshTokenPayload)
         {
-            var user = await _userManager.FindByNameAsync("test123");
-            await _userManager.RemoveFromRoleAsync(user, "NewGame");
+
             return null;
         }
-        private string GenerateJwtToken(IdentityUser user)
+        private async Task<string> GenerateJwtTokenAsync(IdentityUser user)
         {
             var claims = new List<Claim>
             {
-                new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, user.UserName),
-                new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, user.UserName), //user id
+                new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), //json token id
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim("User", "true")
             };
 
+            var userRoles = await _userManager.GetRolesAsync(user);
+            foreach (var role in userRoles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            // var claims = _userService.GetUserClaims(userInfo.UserName).Select(name => new Claim(name, "true"));
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -448,26 +433,87 @@ namespace MM_API.Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-        private string GenerateAndStoreRefreshToken(IdentityUser user)
+        public async Task<RefreshToken> GenerateRefreshTokenAsync(IdentityUser user)
         {
-            //// Generate a new refresh token (you can customize the generation process)
-            //var refreshToken = Guid.NewGuid().ToString();
+            RefreshToken refreshToken = new RefreshToken
+            {
+                Token = await GetUniqueTokenAsync(),
+                Expires = DateTime.UtcNow.AddDays(7), // token is valid for 7 days
+                Created = DateTime.UtcNow,
+            };
 
-            //// Store the refresh token in the database (you may have a table to store user tokens)
-            //// Assuming you have a RefreshToken entity and DbContext is injected as _context
-            //Microsoft.AspNetCore.Authentication.JwtBearer.
-            //var refreshTokenEntity = new RefreshToken
-            //{
-            //    Token = refreshToken,
-            //    UserId = user.Id,
-            //    ExpirationDate = DateTime.UtcNow.AddDays(30) // Set your desired expiration period
-            //};
-
-            ////_context.RefreshTokens.Add(refreshTokenEntity);
-            ////await _context.SaveChangesAsync();
-
-            return null; //refreshToken;
+            return refreshToken;
         }
+
+        private async Task<string> GetUniqueTokenAsync()
+        {
+            string token;
+            bool tokenIsUnique;
+
+            do
+            {
+                // Generate a cryptographically strong random token
+                token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+                // Check if there is any non-expired entry in the database with the same refresh token
+                var existingToken = await _dbContext.t_session
+                    .FirstOrDefaultAsync(s => s.session_refreshtoken.Token == token &&
+                                              s.session_refreshtoken.IsExpired == false);
+
+                // If no entry is found or the token is expired, the token is unique
+                tokenIsUnique = existingToken == null;
+
+            } while (!tokenIsUnique);
+
+            return token;
+        }
+
+
+
+        //public async Task<string> GenerateRefreshTokenAsync(IdentityUser user)
+        //{
+        //    var refreshToken = new RefreshToken
+        //    {
+        //        Token = getUniqueToken(),
+        //        Expires = DateTime.UtcNow.AddDays(7),
+        //        Created = DateTime.UtcNow
+        //    };
+
+        //    return refreshToken.Token;
+
+        //    string getUniqueToken()
+        //    {
+        //        // token is a cryptographically strong random sequence of values
+        //        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+        //        // ensure token is unique by checking against db
+        //        var tokenIsUnique = !_dbContext.t_session.Any(s => s.session_refreshtoken == token);
+
+        //        if (!tokenIsUnique)
+        //            return getUniqueToken();
+
+        //        return token;
+        //    }
+        //}
+        ////private string GenerateAndStoreRefreshToken(IdentityUser user)
+        ////{
+        ////    //// Generate a new refresh token (you can customize the generation process)
+        //    //var refreshToken = Guid.NewGuid().ToString();
+
+        //    //// Store the refresh token in the database (you may have a table to store user tokens)
+        //    //// Assuming you have a RefreshToken entity and DbContext is injected as _context
+        //    //Microsoft.AspNetCore.Authentication.JwtBearer.
+        //    //var refreshTokenEntity = new RefreshToken
+        //    //{
+        //    //    Token = refreshToken,
+        //    //    UserId = user.Id,
+        //    //    ExpirationDate = DateTime.UtcNow.AddDays(30) // Set your desired expiration period
+        //    //};
+
+        //    //_context.RefreshTokens.Add(refreshTokenEntity);
+        //    //await _context.SaveChangesAsync();
+
+        //    return null; //refreshToken;
+        //}
     }
 
 }

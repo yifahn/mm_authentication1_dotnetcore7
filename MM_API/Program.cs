@@ -29,7 +29,9 @@ namespace MM_API
             builder.Services.AddAuthorization(options =>
             {
                 options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
-                options.AddPolicy("NewGamePolicy", policy => policy.RequireRole("NewGame"));
+                options.AddPolicy("UserPolicy", policy => policy.RequireRole("User"));
+               // options.AddPolicy("NewGamePolicy", policy => policy.RequireClaim("NewGame", "true"));
+
             });
 
 
@@ -59,12 +61,13 @@ namespace MM_API
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!)),
+                    SaveSigninToken = true
                 };
             });
             #endregion
 
-          
+           // builder.Services.AddHttpContextAccessor();
 
             // ADD SERVICES - DI ALLOWS TEST / NONTEST SERVICES
             builder.Services
