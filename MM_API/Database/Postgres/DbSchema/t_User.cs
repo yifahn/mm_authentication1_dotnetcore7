@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
 
 namespace MM_API.Database.Postgres.DbSchema
@@ -8,6 +9,10 @@ namespace MM_API.Database.Postgres.DbSchema
     {
         [Key]
         public int user_id { get; set; }
+
+        //[ForeignKey("IdentityUser")]
+        //public string AspNetUserId { get; set; }
+        //public IdentityUser IdentityUser { get; set; }
 
         public t_Kingdom kingdom { get; set; }
 

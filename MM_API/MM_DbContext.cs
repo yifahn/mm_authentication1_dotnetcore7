@@ -4,12 +4,13 @@ using MM_API.Database.Postgres.DbSchema;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
+using MM_API.Database.Postgres;
 
 
 
 namespace MM_API
 {
-    public class MM_DbContext : IdentityDbContext<IdentityUser>
+    public class MM_DbContext : IdentityDbContext<ApplicationUser>
     {
         public MM_DbContext(DbContextOptions<MM_DbContext> options) : base(options) { }
 
@@ -32,12 +33,15 @@ namespace MM_API
         {
             base.OnModelCreating(modelBuilder);
 
-            var userId = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3"; //test admin account
+            var adminUserId = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3"; //test admin account id
 
-            //var claimId = "1e72b6d4-b68d-40c7-b4cb-eb8be7b249a9";
+            var roleAdminId = "70ff5865-335d-4d60-9851-d91499c5505c"; //admin role id
+            var roleUserId = "520d6e0e-235c-47c2-a1d8-5078f7b3fa43"; //user role id
 
-            var roleUserId = "520d6e0e-235c-47c2-a1d8-5078f7b3fa43";
-            var roleAdminId = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3";
+
+            // var t_UserIdString = "536c6b38-68c2-4e80-af71-f8854e2d6cdb";
+            int t_UserIdInt_Admin = -999; //t_user id for admin
+            int t_UserIdInt_User = -9999; //t_user id for testuser
 
             modelBuilder.Entity<IdentityRole>().HasData(new IdentityRole
             {
@@ -52,34 +56,53 @@ namespace MM_API
                 NormalizedName = "USER"
             });
 
+            var hasher = new PasswordHasher<ApplicationUser>();
 
-            // Hash the password for the user
-            var hasher = new PasswordHasher<IdentityUser>();
-
-            // Seed the user 'yifahn'
-            modelBuilder.Entity<IdentityUser>().HasData(new IdentityUser
+            modelBuilder.Entity<t_User>().HasData(new t_User
             {
-                Id = userId,
+                user_id = t_UserIdInt_Admin,
+                user_name = "yifahnadmin",
+            });
+
+            modelBuilder.Entity<ApplicationUser>().HasData(new ApplicationUser
+            {
+                Id = adminUserId,
+                CustomUserId = t_UserIdInt_Admin,
                 UserName = "yifahnadmin",
                 NormalizedUserName = "YIFAHNADMIN",
-                Email = "yifahn@gmail.com",
-                NormalizedEmail = "YIFAHN@GMAIL.COM",
-                PasswordHash = hasher.HashPassword(null, "s3cur4p4$$w0rd")
+                Email = "yifahnadmin@gmail.com",
+                NormalizedEmail = "YIFAHNADMIN@GMAIL.COM",
+                PasswordHash = hasher.HashPassword(null, "s3cur4p4$$w0rd") //development password: secure password elsewhere rather than codebase - github reasons
             });
+
+            //modelBuilder.Entity<t_User>().HasData(new t_User
+            //{
+            //    user_id = t_UserIdInt_User,
+            //    user_name = "yifahnuser",
+            //});
+
+            //modelBuilder.Entity<ApplicationUser>().HasData(new ApplicationUser
+            //{
+            //    Id = userUserId,
+            //    CustomUserId = t_UserIdInt_User,
+            //    UserName = "yifahnuser",
+            //    NormalizedUserName = "YIFAHNUSER",
+            //    Email = "yifahnuser@gmail.com",
+            //    NormalizedEmail = "YIFAHNUSER@GMAIL.COM",
+            //    PasswordHash = hasher.HashPassword(null, "s3cur4p4$$w0rd") //development password: secure password elsewhere rather than codebase - github reasons
+            //});
 
             // Seed the relation between the user and the 'Admin' role
             modelBuilder.Entity<IdentityUserRole<string>>().HasData(new IdentityUserRole<string>
             {
                 RoleId = roleAdminId,
-                UserId = userId
+                UserId = adminUserId
             });
-            modelBuilder.Entity<IdentityUserRole<string>>().HasData(new IdentityUserRole<string>
-            {
-                RoleId = roleUserId,
-                UserId = userId
-            });
+            //modelBuilder.Entity<IdentityUserRole<string>>().HasData(new IdentityUserRole<string>
+            //{
+            //    RoleId = roleUserId,
+            //    UserId = userUserId
+            //});
         }
-
-
     }
 }

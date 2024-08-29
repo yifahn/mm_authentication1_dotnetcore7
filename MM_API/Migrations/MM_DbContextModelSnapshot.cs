@@ -9,6 +9,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SharedGameFramework.Game.Armoury;
 using SharedGameFramework.Game.Character;
 using SharedGameFramework.Game.Kingdom.Map;
+using SharedNetworkFramework.Authentication.Firebase.RefreshToken;
 
 #nullable disable
 
@@ -25,6 +26,94 @@ namespace MM_API.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("MM_API.Database.Postgres.ApplicationUser", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text");
+
+                    b.Property<int>("AccessFailedCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .HasColumnType("text");
+
+                    b.Property<int>("CustomUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("LockoutEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LockoutEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("NormalizedUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("PhoneNumberConfirmed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SecurityStamp")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomUserId");
+
+                    b.HasIndex("NormalizedEmail")
+                        .HasDatabaseName("EmailIndex");
+
+                    b.HasIndex("NormalizedUserName")
+                        .IsUnique()
+                        .HasDatabaseName("UserNameIndex");
+
+                    b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "5f4b158d-9408-4662-8c69-dfcccf10dcf2",
+                            CustomUserId = -999,
+                            Email = "yifahnadmin@gmail.com",
+                            EmailConfirmed = false,
+                            LockoutEnabled = false,
+                            NormalizedEmail = "YIFAHNADMIN@GMAIL.COM",
+                            NormalizedUserName = "YIFAHNADMIN",
+                            PasswordHash = "AQAAAAIAAYagAAAAEEv9RMhtCfURDrsGG5+xbihkksUU5v9+tbJbtFbcJkYPoTImItta/Y4ESpeATIkAwQ==",
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "84a81988-5147-443f-9e5d-b9ae1f5bf217",
+                            TwoFactorEnabled = false,
+                            UserName = "yifahnadmin"
+                        });
+                });
 
             modelBuilder.Entity("MM_API.Database.Postgres.DbSchema.t_Armoury", b =>
                 {
@@ -124,19 +213,15 @@ namespace MM_API.Migrations
                     b.Property<int>("fk_user_id")
                         .HasColumnType("integer");
 
-                    b.Property<string>("session_authtoken")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTimeOffset>("session_loggedin")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("session_loggedout")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("session_refreshtoken")
+                    b.Property<RefreshToken>("session_refreshtoken")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("jsonb");
 
                     b.HasKey("session_id");
 
@@ -219,6 +304,13 @@ namespace MM_API.Migrations
                     b.HasKey("user_id");
 
                     b.ToTable("t_user");
+
+                    b.HasData(
+                        new
+                        {
+                            user_id = -999,
+                            user_name = "yifahnadmin"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -249,7 +341,7 @@ namespace MM_API.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3",
+                            Id = "70ff5865-335d-4d60-9851-d91499c5505c",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
                         },
@@ -284,88 +376,6 @@ namespace MM_API.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AspNetRoleClaims", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUser", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<int>("AccessFailedCount")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("NormalizedEmail")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("NormalizedUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("PasswordHash")
-                        .HasColumnType("text");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("SecurityStamp")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("UserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
-
-                    b.HasIndex("NormalizedUserName")
-                        .IsUnique()
-                        .HasDatabaseName("UserNameIndex");
-
-                    b.ToTable("AspNetUsers", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3",
-                            AccessFailedCount = 0,
-                            ConcurrencyStamp = "2284196f-07bd-43fa-aeeb-99912ed9a224",
-                            Email = "yifahn@gmail.com",
-                            EmailConfirmed = false,
-                            LockoutEnabled = false,
-                            NormalizedEmail = "YIFAHN@GMAIL.COM",
-                            NormalizedUserName = "YIFAHNADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEAAwtrT+Pnwp3z/4oHtJ+3Ryl2M8YRIpETsVvekDhtxGFKXrzLPZtjD5z6UIaVSR3Q==",
-                            PhoneNumberConfirmed = false,
-                            SecurityStamp = "251232a3-7f8d-4e9f-9467-a65d67100070",
-                            TwoFactorEnabled = false,
-                            UserName = "yifahnadmin"
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -433,12 +443,7 @@ namespace MM_API.Migrations
                         new
                         {
                             UserId = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3",
-                            RoleId = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3"
-                        },
-                        new
-                        {
-                            UserId = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3",
-                            RoleId = "520d6e0e-235c-47c2-a1d8-5078f7b3fa43"
+                            RoleId = "70ff5865-335d-4d60-9851-d91499c5505c"
                         });
                 });
 
@@ -459,6 +464,17 @@ namespace MM_API.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("MM_API.Database.Postgres.ApplicationUser", b =>
+                {
+                    b.HasOne("MM_API.Database.Postgres.DbSchema.t_User", "User")
+                        .WithMany()
+                        .HasForeignKey("CustomUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MM_API.Database.Postgres.DbSchema.t_Armoury", b =>
@@ -538,7 +554,7 @@ namespace MM_API.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                    b.HasOne("MM_API.Database.Postgres.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -547,7 +563,7 @@ namespace MM_API.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                    b.HasOne("MM_API.Database.Postgres.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -562,7 +578,7 @@ namespace MM_API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                    b.HasOne("MM_API.Database.Postgres.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -571,7 +587,7 @@ namespace MM_API.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
+                    b.HasOne("MM_API.Database.Postgres.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)

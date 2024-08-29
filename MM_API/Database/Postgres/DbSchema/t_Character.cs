@@ -10,9 +10,10 @@ namespace MM_API.Database.Postgres.DbSchema
         [Key]
         public int character_id { get; set; }
 
-        [ForeignKey("kingdom")]
+        
         public int fk_kingdom_id { get; set; }
 
+        [ForeignKey("fk_kingdom_id")]
         public t_Kingdom kingdom { get; set; }
 
         public t_Soupkitchen soupkitchen { get; set; }
@@ -21,7 +22,7 @@ namespace MM_API.Database.Postgres.DbSchema
         public string character_name { get; set; }
 
         [Column(TypeName = "jsonb")]
-        public Character_Inventory character_inventory { get; set; }
+        public Character_Inventory character_inventory { get; set; } //= new Character_Inventory();
 
         [Column(TypeName = "jsonb")]
         public CharacterSheet character_sheet { get; set; }

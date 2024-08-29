@@ -8,12 +8,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
+using MM_API.Database.Postgres;
 
 namespace MM_API.Services
 {
     public interface IKingdomService
     {
-        public Task<IMapNewResponse> NewMap(MapNewPayload payload);
+      //  public Task<IMapNewResponse> NewMap(MapNewPayload payload);
         public Task<IMapLoadResponse> LoadMap(MapLoadPayload payload);
         public Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload payload);
 
@@ -99,11 +100,11 @@ namespace MM_API.Services
     {
        // private readonly SignInManager<IdentityUser> _signInManager;
         private readonly MM_DbContext _dbContext;
-        private readonly UserManager<IdentityUser> _userManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public TestKingdomService(MM_DbContext dbContext, UserManager<IdentityUser> userManager, RoleManager<IdentityRole> roleManager, IHttpContextAccessor httpContextAccessor)
+        public TestKingdomService(MM_DbContext dbContext, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IHttpContextAccessor httpContextAccessor)
         {
             _dbContext = dbContext;
             _userManager = userManager;
@@ -117,7 +118,7 @@ namespace MM_API.Services
         //    await _userManager.RemoveFromRoleAsync(user, "NewGame");
         //    return null;
         //}
-        [Authorize(Policy = "UserPolicy")]
+       // [Authorize(Policy = "UserPolicy")]
         public async Task<IMapLoadResponse> LoadMap(MapLoadPayload mapLoadPayload)
         {
             var email = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;

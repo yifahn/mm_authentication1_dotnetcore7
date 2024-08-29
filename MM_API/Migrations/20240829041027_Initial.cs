@@ -5,6 +5,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SharedGameFramework.Game.Armoury;
 using SharedGameFramework.Game.Character;
 using SharedGameFramework.Game.Kingdom.Map;
+using SharedNetworkFramework.Authentication.Firebase.RefreshToken;
 
 #nullable disable
 
@@ -13,7 +14,7 @@ using SharedGameFramework.Game.Kingdom.Map;
 namespace MM_API.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialWithSeeding : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -30,31 +31,6 @@ namespace MM_API.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetRoles", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "AspNetUsers",
-                columns: table => new
-                {
-                    Id = table.Column<string>(type: "text", nullable: false),
-                    UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    NormalizedEmail = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
-                    EmailConfirmed = table.Column<bool>(type: "boolean", nullable: false),
-                    PasswordHash = table.Column<string>(type: "text", nullable: true),
-                    SecurityStamp = table.Column<string>(type: "text", nullable: true),
-                    ConcurrencyStamp = table.Column<string>(type: "text", nullable: true),
-                    PhoneNumber = table.Column<string>(type: "text", nullable: true),
-                    PhoneNumberConfirmed = table.Column<bool>(type: "boolean", nullable: false),
-                    TwoFactorEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    LockoutEnd = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
-                    LockoutEnabled = table.Column<bool>(type: "boolean", nullable: false),
-                    AccessFailedCount = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -88,6 +64,81 @@ namespace MM_API.Migrations
                         column: x => x.RoleId,
                         principalTable: "AspNetRoles",
                         principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AspNetUsers",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "text", nullable: false),
+                    CustomUserId = table.Column<int>(type: "integer", nullable: false),
+                    UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    NormalizedEmail = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
+                    EmailConfirmed = table.Column<bool>(type: "boolean", nullable: false),
+                    PasswordHash = table.Column<string>(type: "text", nullable: true),
+                    SecurityStamp = table.Column<string>(type: "text", nullable: true),
+                    ConcurrencyStamp = table.Column<string>(type: "text", nullable: true),
+                    PhoneNumber = table.Column<string>(type: "text", nullable: true),
+                    PhoneNumberConfirmed = table.Column<bool>(type: "boolean", nullable: false),
+                    TwoFactorEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    LockoutEnd = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    LockoutEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    AccessFailedCount = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_t_user_CustomUserId",
+                        column: x => x.CustomUserId,
+                        principalTable: "t_user",
+                        principalColumn: "user_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "t_kingdom",
+                columns: table => new
+                {
+                    kingdom_id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    fk_user_id = table.Column<int>(type: "integer", nullable: false),
+                    kingdom_name = table.Column<string>(type: "text", nullable: false),
+                    kingdom_map = table.Column<Map>(type: "jsonb", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_t_kingdom", x => x.kingdom_id);
+                    table.ForeignKey(
+                        name: "FK_t_kingdom_t_user_fk_user_id",
+                        column: x => x.fk_user_id,
+                        principalTable: "t_user",
+                        principalColumn: "user_id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "t_session",
+                columns: table => new
+                {
+                    session_id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    fk_user_id = table.Column<int>(type: "integer", nullable: false),
+                    session_refreshtoken = table.Column<RefreshToken>(type: "jsonb", nullable: false),
+                    session_loggedin = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    session_loggedout = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_t_session", x => x.session_id);
+                    table.ForeignKey(
+                        name: "FK_t_session_t_user_fk_user_id",
+                        column: x => x.fk_user_id,
+                        principalTable: "t_user",
+                        principalColumn: "user_id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -173,50 +224,6 @@ namespace MM_API.Migrations
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "t_kingdom",
-                columns: table => new
-                {
-                    kingdom_id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    fk_user_id = table.Column<int>(type: "integer", nullable: false),
-                    kingdom_name = table.Column<string>(type: "text", nullable: false),
-                    kingdom_map = table.Column<Map>(type: "jsonb", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_t_kingdom", x => x.kingdom_id);
-                    table.ForeignKey(
-                        name: "FK_t_kingdom_t_user_fk_user_id",
-                        column: x => x.fk_user_id,
-                        principalTable: "t_user",
-                        principalColumn: "user_id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "t_session",
-                columns: table => new
-                {
-                    session_id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    fk_user_id = table.Column<int>(type: "integer", nullable: false),
-                    session_authtoken = table.Column<string>(type: "text", nullable: false),
-                    session_refreshtoken = table.Column<string>(type: "text", nullable: false),
-                    session_loggedin = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
-                    session_loggedout = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_t_session", x => x.session_id);
-                    table.ForeignKey(
-                        name: "FK_t_session_t_user_fk_user_id",
-                        column: x => x.fk_user_id,
-                        principalTable: "t_user",
-                        principalColumn: "user_id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -315,22 +322,23 @@ namespace MM_API.Migrations
                 values: new object[,]
                 {
                     { "520d6e0e-235c-47c2-a1d8-5078f7b3fa43", null, "User", "USER" },
-                    { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", null, "Admin", "ADMIN" }
+                    { "70ff5865-335d-4d60-9851-d91499c5505c", null, "Admin", "ADMIN" }
                 });
 
             migrationBuilder.InsertData(
+                table: "t_user",
+                columns: new[] { "user_id", "user_name" },
+                values: new object[] { -999, "yifahnadmin" });
+
+            migrationBuilder.InsertData(
                 table: "AspNetUsers",
-                columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "Email", "EmailConfirmed", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "2284196f-07bd-43fa-aeeb-99912ed9a224", "yifahn@gmail.com", false, false, null, "YIFAHN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEAAwtrT+Pnwp3z/4oHtJ+3Ryl2M8YRIpETsVvekDhtxGFKXrzLPZtjD5z6UIaVSR3Q==", null, false, "251232a3-7f8d-4e9f-9467-a65d67100070", false, "yifahnadmin" });
+                columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "CustomUserId", "Email", "EmailConfirmed", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName" },
+                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "5f4b158d-9408-4662-8c69-dfcccf10dcf2", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEEv9RMhtCfURDrsGG5+xbihkksUU5v9+tbJbtFbcJkYPoTImItta/Y4ESpeATIkAwQ==", null, false, "84a81988-5147-443f-9e5d-b9ae1f5bf217", false, "yifahnadmin" });
 
             migrationBuilder.InsertData(
                 table: "AspNetUserRoles",
                 columns: new[] { "RoleId", "UserId" },
-                values: new object[,]
-                {
-                    { "520d6e0e-235c-47c2-a1d8-5078f7b3fa43", "5de48f8c-0a70-4e21-9cc0-798ff818fdc3" },
-                    { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", "5de48f8c-0a70-4e21-9cc0-798ff818fdc3" }
-                });
+                values: new object[] { "70ff5865-335d-4d60-9851-d91499c5505c", "5de48f8c-0a70-4e21-9cc0-798ff818fdc3" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
@@ -362,6 +370,11 @@ namespace MM_API.Migrations
                 name: "EmailIndex",
                 table: "AspNetUsers",
                 column: "NormalizedEmail");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_CustomUserId",
+                table: "AspNetUsers",
+                column: "CustomUserId");
 
             migrationBuilder.CreateIndex(
                 name: "UserNameIndex",

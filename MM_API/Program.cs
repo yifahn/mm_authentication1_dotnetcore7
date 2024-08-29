@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.UI;
 
 using MM_API.Database.Postgres.DbSchema;
+using MM_API.Database.Postgres;
 
 namespace MM_API
 {
@@ -18,7 +19,7 @@ namespace MM_API
         {
             //CREATE WEBAPP BUILDER
             var builder = WebApplication.CreateBuilder(args);
-
+         
             // POSTGRESQL CONNECTION
             builder.Services.AddDbContext<MM_DbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
@@ -35,7 +36,7 @@ namespace MM_API
             });
 
 
-            builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+            builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
             {
                 options.Password.RequiredLength = 6;
                 options.Password.RequireNonAlphanumeric = false;
@@ -87,10 +88,10 @@ namespace MM_API
             // ADD SWASHBUCKLE/SWAGGER
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-
+         
             // NEW WEBAPP
             var app = builder.Build();
-        
+       
             //app.MapIdentityApi<IdentityUser>();
 
             // USE SWAGGER IF DEVELOPING

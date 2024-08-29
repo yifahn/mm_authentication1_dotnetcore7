@@ -17,6 +17,8 @@ using MM_API.Database.Postgres.DbSchema;
 using MM_API.ErrorHandler;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using MM_API.Database.Postgres;
+using System.Transactions;
 
 namespace MM_API.Services
 {
@@ -217,23 +219,23 @@ namespace MM_API.Services
     {
 
         private readonly MM_DbContext _dbContext;
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
         //  private readonly ClaimsPrincipal _claimsPrincipal;
 
-        private readonly HttpContextAccessor _contextAccessor;
+        //  private readonly HttpContextAccessor _contextAccessor;
 
 
-        public TestAuthenticationService(MM_DbContext dbContext, UserManager<IdentityUser> identityUser, SignInManager<IdentityUser> signInManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration, HttpContextAccessor contextAccessor)//, ClaimsPrincipal claimsPrincipal
+        public TestAuthenticationService(MM_DbContext dbContext, UserManager<ApplicationUser> identityUser, SignInManager<ApplicationUser> signInManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)//, ClaimsPrincipal claimsPrincipal , HttpContextAccessor contextAccessor
         {
             _dbContext = dbContext;
             _userManager = identityUser;
             _roleManager = roleManager;
             _signInManager = signInManager;
             _configuration = configuration;
-            _contextAccessor = contextAccessor;
+            // _contextAccessor = contextAccessor;
         }
 
         //private readonly string FB_URL = "https://identitytoolkit.googleapis.com/v1";
@@ -249,32 +251,72 @@ namespace MM_API.Services
         /// <returns>
         /// RegistrationResponse or FirebaseError
         /// </returns>
+        //[RequireHttps]
         public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
         {
             try
             {
-                var identityUser = new IdentityUser()
+                using (var transaction = await _dbContext.Database.BeginTransactionAsync())
                 {
-                    Id = Guid.NewGuid().ToString(),
-                    UserName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
-                    Email = registrationPayload.Email
-                };
-                var userResult = await _userManager.CreateAsync(identityUser, registrationPayload.Password);
-                var claimsResult = await _userManager.AddToRoleAsync(identityUser, "User");
+                    try
+                    {
+                        var userName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower();
+                        var user = new t_User() { user_name = userName };
+                        await _dbContext.AddAsync(user);
+                        await _dbContext.SaveChangesAsync();
 
-                t_User user = new t_User()
-                {
-                    user_name = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
-                };
-                await _dbContext.AddAsync(user);
-                await _dbContext.SaveChangesAsync();
+                        var session = new t_Session() { fk_user_id = user.user_id };
+                        await _dbContext.AddAsync(session);
 
-                return new RegistrationResponse()
-                {
-                    Username = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
-                };
+                        var kingdom = new t_Kingdom() { fk_user_id = user.user_id };
+                        await _dbContext.AddAsync(kingdom);
+
+                        var character = new t_Character()
+                        {
+                            fk_kingdom_id = kingdom.kingdom_id,
+                            character_inventory = new SharedGameFramework.Game.Character.Character_Inventory()
+                        };
+                        await _dbContext.AddAsync(character);
+
+                        var soupkitchen = new t_Soupkitchen() { fk_character_id = character.character_id };
+                        await _dbContext.AddAsync(soupkitchen);
+
+                        var treasury = new t_Treasury() { fk_kingdom_id = kingdom.kingdom_id };
+                        await _dbContext.AddAsync(treasury);
+
+                        var armoury = new t_Armoury() 
+                        { 
+                            fk_kingdom_id = kingdom.kingdom_id,
+                            armoury_inventory = new SharedGameFramework.Game.Armoury.Armoury_Inventory()
+                        };
+                        await _dbContext.AddAsync(armoury);
+
+                        await _dbContext.SaveChangesAsync(); 
+
+
+                        var identityUser = new ApplicationUser()
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            UserName = userName,
+                            Email = registrationPayload.Email
+                        };
+                        var userResult = await _userManager.CreateAsync(identityUser, registrationPayload.Password);
+                        var claimsResult = await _userManager.AddToRoleAsync(identityUser, "User");
+
+                        await transaction.CommitAsync();
+
+                        return new RegistrationResponse()
+                        {
+                            Username = userName,
+                        };
+                    }
+                    catch (Exception)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back");
+                        await transaction.RollbackAsync();
+                    }
+                }
             }
-            ///internally log error with accurate stack info - do not throw
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
@@ -303,7 +345,7 @@ namespace MM_API.Services
         registered        |  boolean	|
          */
 
-        //[RequireHttps]
+        // [RequireHttps]
         public async Task<ISignInResponse> SignInAsync(SignInPayload loginPayload)
         {
             try
@@ -335,12 +377,12 @@ namespace MM_API.Services
                     };
                 }
 
-                string authToken = await GenerateJwtTokenAsync(user);
-                string refreshToken = await GenerateRefreshTokenAsync()
+                string authToken = await GenerateAuthToken(user);
+                RefreshToken refreshToken = await GenerateRefreshTokenAsync();
 
                 t_Session session = new t_Session
                 {
-                    session_refreshtoken
+                    session_refreshtoken = refreshToken,
                     session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
                     session_loggedout = DateTimeOffset.MinValue,
                 };
@@ -348,19 +390,21 @@ namespace MM_API.Services
                 await _dbContext.AddAsync(session);
                 await _dbContext.SaveChangesAsync();
 
-                // Generate and return a response with a JWT token or other details as required
                 return new SignInResponse
                 {
                     Username = user.UserName,
-                    AccessToken = await GenerateJwtTokenAsync(user),
-                    RefreshToken = await GenerateAndStoreRefreshTokenAsync(user)
+                    AuthToken = authToken,
+                    RefreshToken = refreshToken.Token
                 };
-
-
             }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
             }
-        [RequireHttps]
-        [Authorize]
+            return null;
+        }
+        // [RequireHttps]
+        //[Authorize]
         public async Task<ISignOutResponse> SignOutAsync(SignOutPayload logoutPayload)
         {
             //  try
@@ -404,7 +448,7 @@ namespace MM_API.Services
 
             return null;
         }
-        private async Task<string> GenerateJwtTokenAsync(IdentityUser user)
+        private async Task<string> GenerateAuthToken(ApplicationUser user)
         {
             var claims = new List<Claim>
             {
@@ -433,13 +477,13 @@ namespace MM_API.Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-        public async Task<RefreshToken> GenerateRefreshTokenAsync(IdentityUser user)
+        public async Task<RefreshToken> GenerateRefreshTokenAsync()
         {
             RefreshToken refreshToken = new RefreshToken
             {
                 Token = await GetUniqueTokenAsync(),
-                Expires = DateTime.UtcNow.AddDays(7), // token is valid for 7 days
                 Created = DateTime.UtcNow,
+                Revoked = false
             };
 
             return refreshToken;
@@ -449,26 +493,100 @@ namespace MM_API.Services
         {
             string token;
             bool tokenIsUnique;
-
             do
             {
-                // Generate a cryptographically strong random token
                 token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
-                // Check if there is any non-expired entry in the database with the same refresh token
                 var existingToken = await _dbContext.t_session
                     .FirstOrDefaultAsync(s => s.session_refreshtoken.Token == token &&
                                               s.session_refreshtoken.IsExpired == false);
-
-                // If no entry is found or the token is expired, the token is unique
                 tokenIsUnique = existingToken == null;
-
             } while (!tokenIsUnique);
-
             return token;
         }
 
+        //public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
+        //{
+        //    try
+        //    {
+        //        using (_dbContext.Database.BeginTransaction())
+        //        {
 
+
+        //            t_User user = new t_User()
+        //            {
+        //                user_name = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
+        //            };
+        //            await _dbContext.AddAsync(user);
+        //            await _dbContext.SaveChangesAsync();
+
+        //            t_Session session = new t_Session()
+        //            {
+        //                fk_user_id = user.user_id
+        //            };
+        //            await _dbContext.AddAsync(session);
+        //            await _dbContext.SaveChangesAsync();
+
+        //            t_Kingdom kingdom = new t_Kingdom()
+        //            {
+        //                fk_user_id = user.user_id
+        //            };
+        //            await _dbContext.AddAsync(kingdom);
+        //            await _dbContext.SaveChangesAsync();
+
+        //            t_Character character = new t_Character()
+        //            {
+        //                fk_kingdom_id = kingdom.kingdom_id
+        //            };
+        //            await _dbContext.AddAsync(character);
+        //            await _dbContext.SaveChangesAsync();
+
+        //            t_Soupkitchen soupkitchen = new t_Soupkitchen()
+        //            {
+        //                fk_character_id = character.character_id
+        //            };
+        //            await _dbContext.AddAsync(soupkitchen);
+        //            await _dbContext.SaveChangesAsync();
+
+        //            t_Treasury treasury = new t_Treasury()
+        //            {
+        //                fk_kingdom_id = kingdom.kingdom_id
+        //            };
+        //            await _dbContext.AddAsync(treasury);
+        //            await _dbContext.SaveChangesAsync();
+
+        //            t_Armoury armoury = new t_Armoury()
+        //            {
+        //                fk_kingdom_id = kingdom.kingdom_id
+        //            };
+        //            await _dbContext.AddAsync(armoury);
+        //            await _dbContext.SaveChangesAsync();
+
+        //            var identityUser = new ApplicationUser()
+        //            {
+        //                Id = Guid.NewGuid().ToString(),
+        //                UserName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
+        //                Email = registrationPayload.Email
+        //            };
+        //            var userResult = await _userManager.CreateAsync(identityUser, registrationPayload.Password);
+        //            var claimsResult = await _userManager.AddToRoleAsync(identityUser, "User");
+        //        }
+
+
+
+
+        //        return new RegistrationResponse()
+        //        {
+        //            Username = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
+        //        };
+        //    }
+        //    ///internally log error with accurate stack info - do not throw
+        //    catch (Exception ex)
+        //    {
+        //        System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+        //    }
+        //    return null;
+        //}
 
         //public async Task<string> GenerateRefreshTokenAsync(IdentityUser user)
         //{

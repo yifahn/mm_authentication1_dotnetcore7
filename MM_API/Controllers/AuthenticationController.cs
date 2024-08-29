@@ -6,6 +6,8 @@ using SharedNetworkFramework.Authentication.Firebase.RefreshToken;
 using SharedNetworkFramework.Authentication.Firebase.SignOut;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using MM_API.Database.Postgres;
 
 namespace MM_API.Controllers
 {
@@ -24,6 +26,7 @@ namespace MM_API.Controllers
         }
 
         //localhost:5223/authentication/register
+        //[RequireHttps]
         [HttpPost("register")]
         public async Task<ActionResult<IRegistrationResponse>> RegisterAsync([FromBody] RegistrationPayload payload)
         {
@@ -33,7 +36,7 @@ namespace MM_API.Controllers
             }
             try
             {
-                var user = new IdentityUser { UserName = payload.Email };
+                var user = new ApplicationUser { UserName = payload.Email };
                 var result = await _authenticationService.RegisterAsync(payload);
                 if (result is IRegistrationResponse)
                 {
@@ -53,6 +56,7 @@ namespace MM_API.Controllers
         }
 
         //localhost:5223/authentication/login
+        //[RequireHttps]
         [HttpPost("login")]
         public async Task<ActionResult<ISignInResponse>> LoginAsync([FromBody] SignInPayload payload)
         {
@@ -81,6 +85,8 @@ namespace MM_API.Controllers
         }
 
         //localhost:5223/authentication/logout
+        //[RequireHttps]
+        [Authorize(Policy = "UserPolicy")]
         [HttpPost("logout")]
         public async Task<ActionResult<ISignOutResponse>> LogoutAsync([FromBody] SignOutPayload payload)
         {
@@ -114,6 +120,7 @@ namespace MM_API.Controllers
         }
 
         //localhost:5223/authentication/refresh
+       // [RequireHttps]
         [HttpPost("refresh")]
         public async Task<ActionResult<IRefreshTokenResponse>> RefreshAsync([FromBody] RefreshTokenPayload payload)
         {
