@@ -420,13 +420,48 @@ namespace MM_API.Services
 
                 var serialisedRefreshToken = JsonConvert.SerializeObject(refreshToken);
 
-                t_Session session = new t_Session()
+
+                // Check if a placeholder session exists for the user
+                t_Session session = await _dbContext.t_session
+                    .Where(s => s.session_loggedin == DateTimeOffset.MinValue && s.fk_user_id == user.CustomUserId)
+                    .FirstOrDefaultAsync();
+
+                if (session != null)
                 {
-                    fk_user_id = user.CustomUserId,
-                    session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
-                    session_loggedout = DateTimeOffset.MinValue,
-                    refreshtoken = serialisedRefreshToken
-                };
+                    // Update the existing placeholder session
+                    session.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime; // Set to current login time
+                    session.refreshtoken = serialisedRefreshToken;    // Update with new refresh token or any other data
+                }
+                else
+                {
+                    // Create a new session entry for the user
+                    session = new t_Session
+                    {
+                        fk_user_id = user.CustomUserId,
+                        session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,      // Set the current login time
+                        session_loggedout = DateTimeOffset.MinValue,   // Set logged out time to MinValue as it's not applicable yet
+                        refreshtoken = serialisedRefreshToken          // Set the refresh token or other initial data
+                    };
+
+                    // Add the new session to the context
+                    await _dbContext.t_session.AddAsync(session);
+                }
+
+                   // t_Session session = await _dbContext.t_session.Where(w => w.session_loggedin == DateTimeOffset.MinValue).FirstOrDefaultAsync(e => e.fk_user_id == user.CustomUserId); //FirstOrDefaultAsync(s => s.fk_user_id == user.CustomUserId && )  .LastOrDefaultAsync();
+               // session.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
+               // session.refreshtoken = serialisedRefreshToken;
+
+
+                //t_Session session = new t_Session()
+                //{
+                //    fk_user_id = user.CustomUserId,
+                //    session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
+                //    session_loggedout = DateTimeOffset.MinValue,
+                //    refreshtoken = serialisedRefreshToken
+                //};
+
+
+
                 // await _dbContext.t_session.LastAsync(s => s.fk_user_id == user.CustomUserId);
 
                 // session.refreshtoken = refreshToken.Token;
@@ -434,7 +469,6 @@ namespace MM_API.Services
                 //  session.session_loggedout = DateTimeOffset.MinValue;
 
 
-                await _dbContext.AddAsync(session);
                 await _dbContext.SaveChangesAsync();
 
                 return new SignInResponse
@@ -506,7 +540,9 @@ namespace MM_API.Services
             response.AuthToken = GenerateAuthToken(identityUser).Result;
             response.RefreshToken = GenerateRefreshTokenAsync().Result;
 
-            t_Session session = await _dbContext.t_session.LastAsync(s => s.fk_user_id == identityUser.CustomUserId);// && s.refreshtoken == refreshTokenPayload.RefreshToken);
+            t_Session session = await _dbContext.t_session
+                .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MinValue)
+                .FirstOrDefaultAsync(); //LastOrDefaultAsync(s => s.fk_user_id == identityUser.CustomUserId);// && s.refreshtoken == refreshTokenPayload.RefreshToken);
             RefreshToken deserialisedRefreshToken = JsonConvert.DeserializeObject<RefreshToken>(session.refreshtoken);
             if (deserialisedRefreshToken == null)
                 throw new Exception();
