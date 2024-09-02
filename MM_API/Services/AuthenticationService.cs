@@ -79,7 +79,7 @@ namespace MM_API.Services
                         };
                         t_Session session = new t_Session()
                         {
-                            user = user,
+                            // user = user,
                             //   session_authtoken = registrationResponse.AuthToken,
                             //   session_refreshtoken = registrationResponse.RefreshToken,
                             session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
@@ -238,10 +238,6 @@ namespace MM_API.Services
             // _contextAccessor = contextAccessor;
         }
 
-        //private readonly string FB_URL = "https://identitytoolkit.googleapis.com/v1";
-        //private readonly string FB_URL_AUTH = "/accounts";
-        //private readonly string FB_URL_TOKEN = "https://securetoken.googleapis.com/v1/token";
-        //private readonly string FB_URL_APIKEY = $"?key={Environment.GetEnvironmentVariable("FIREBASE_API_KEY")}";
 
         /// <summary>
         /// Register user with FirebaseAuth and PostgresDB
@@ -261,44 +257,87 @@ namespace MM_API.Services
                     try
                     {
                         var userName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower();
-                        var user = new t_User() { user_name = userName };
+                        var user = new t_User()
+                        {
+                            user_name = userName
+                        };
                         await _dbContext.AddAsync(user);
                         await _dbContext.SaveChangesAsync();
 
-                        var session = new t_Session() { fk_user_id = user.user_id };
+
+                        var refreshToken = new RefreshToken()
+                        {
+                            Token = "null",
+                            Expires = DateTimeOffset.MinValue,
+                            Created = DateTimeOffset.MinValue
+                        };
+                        var serialisedRefreshToken = JsonConvert.SerializeObject(refreshToken);
+                        var session = new t_Session()
+                        {
+                            session_loggedin = DateTimeOffset.MinValue,
+                            session_loggedout = DateTimeOffset.MinValue,
+                            refreshtoken = serialisedRefreshToken,
+                            fk_user_id = user.user_id
+                        };
                         await _dbContext.AddAsync(session);
 
-                        var kingdom = new t_Kingdom() { fk_user_id = user.user_id };
+                        var kingdom = new t_Kingdom()
+                        {
+
+                            kingdom_name = "null",
+                            fk_user_id = user.user_id
+                        };
                         await _dbContext.AddAsync(kingdom);
 
                         var character = new t_Character()
                         {
-                            fk_kingdom_id = kingdom.kingdom_id,
-                            character_inventory = new SharedGameFramework.Game.Character.Character_Inventory()
+
+                            character_name = "null",
+                            fk_user_id = user.user_id
+                            //   fk_kingdom_id = kingdom.kingdom_id,
+                            // character_inventory = new SharedGameFramework.Game.Character.Character_Inventory()
                         };
                         await _dbContext.AddAsync(character);
 
-                        var soupkitchen = new t_Soupkitchen() { fk_character_id = character.character_id };
+                        var soupkitchen = new t_Soupkitchen()
+                        {
+
+                            fk_user_id = user.user_id
+                            // fk_character_id = character.character_id
+                        };
                         await _dbContext.AddAsync(soupkitchen);
 
-                        var treasury = new t_Treasury() { fk_kingdom_id = kingdom.kingdom_id };
+                        var treasury = new t_Treasury()
+                        {
+                            treasury_coin = 0,
+                            treasury_gainrate = 0,
+                            treasury_multiplier = 0,
+
+                            fk_user_id = user.user_id
+                            //  fk_kingdom_id = kingdom.kingdom_id 
+                        };
                         await _dbContext.AddAsync(treasury);
 
-                        var armoury = new t_Armoury() 
-                        { 
-                            fk_kingdom_id = kingdom.kingdom_id,
-                            armoury_inventory = new SharedGameFramework.Game.Armoury.Armoury_Inventory()
+                        var armoury = new t_Armoury()
+                        {
+
+                            fk_user_id = user.user_id
+
+
+                            //  fk_kingdom_id = kingdom.kingdom_id,
+                            // armoury_inventory = new SharedGameFramework.Game.Armoury.Armoury_Inventory()
                         };
                         await _dbContext.AddAsync(armoury);
 
-                        await _dbContext.SaveChangesAsync(); 
+                        // await _dbContext.SaveChangesAsync();
 
 
                         var identityUser = new ApplicationUser()
                         {
                             Id = Guid.NewGuid().ToString(),
                             UserName = userName,
-                            Email = registrationPayload.Email
+                            Email = registrationPayload.Email,
+                            CustomUserId = user.user_id,
                         };
                         var userResult = await _userManager.CreateAsync(identityUser, registrationPayload.Password);
                         var claimsResult = await _userManager.AddToRoleAsync(identityUser, "User");
@@ -376,16 +415,24 @@ namespace MM_API.Services
                         }]
                     };
                 }
-
                 string authToken = await GenerateAuthToken(user);
                 RefreshToken refreshToken = await GenerateRefreshTokenAsync();
 
-                t_Session session = new t_Session
+                var serialisedRefreshToken = JsonConvert.SerializeObject(refreshToken);
+
+                t_Session session = new t_Session()
                 {
-                    session_refreshtoken = refreshToken,
+                    fk_user_id = user.CustomUserId,
                     session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
                     session_loggedout = DateTimeOffset.MinValue,
+                    refreshtoken = serialisedRefreshToken
                 };
+                // await _dbContext.t_session.LastAsync(s => s.fk_user_id == user.CustomUserId);
+
+                // session.refreshtoken = refreshToken.Token;
+                // session.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
+                //  session.session_loggedout = DateTimeOffset.MinValue;
+
 
                 await _dbContext.AddAsync(session);
                 await _dbContext.SaveChangesAsync();
@@ -394,7 +441,7 @@ namespace MM_API.Services
                 {
                     Username = user.UserName,
                     AuthToken = authToken,
-                    RefreshToken = refreshToken.Token
+                    RefreshToken = refreshToken
                 };
             }
             catch (Exception ex)
@@ -445,8 +492,33 @@ namespace MM_API.Services
         }
         public async Task<IRefreshTokenResponse> RefreshTokenAsync(RefreshTokenPayload refreshTokenPayload)
         {
+            if (refreshTokenPayload.RefreshToken.Expires <= DateTimeOffset.UtcNow.UtcDateTime)
+                return new RefreshTokenResponse() { AuthToken = "null", RefreshToken = new RefreshToken() { Token = "null", Created = DateTimeOffset.MinValue, Expires = DateTimeOffset.MinValue } };
 
-            return null;
+            var principle = GetTokenPrinciple(refreshTokenPayload.AuthToken);
+
+            var response = new RefreshTokenResponse();
+            //if (principle?.Identity?.Name is null) //should always be valid
+            //    return response; 
+
+            var identityUser = await _userManager.FindByNameAsync(principle.Identity.Name);
+
+            response.AuthToken = GenerateAuthToken(identityUser).Result;
+            response.RefreshToken = GenerateRefreshTokenAsync().Result;
+
+            t_Session session = await _dbContext.t_session.LastAsync(s => s.fk_user_id == identityUser.CustomUserId);// && s.refreshtoken == refreshTokenPayload.RefreshToken);
+            RefreshToken deserialisedRefreshToken = JsonConvert.DeserializeObject<RefreshToken>(session.refreshtoken);
+            if (deserialisedRefreshToken == null)
+                throw new Exception();
+
+            if (deserialisedRefreshToken.Token != refreshTokenPayload.RefreshToken.Token)
+                throw new Exception();
+
+            session.refreshtoken = JsonConvert.SerializeObject(response.RefreshToken);
+
+            await _dbContext.SaveChangesAsync();
+
+            return response;
         }
         private async Task<string> GenerateAuthToken(ApplicationUser user)
         {
@@ -471,7 +543,7 @@ namespace MM_API.Services
                 issuer: _configuration["JwtSettings:Issuer"],
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:ExpiresInMinutes"])),
+                expires: DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:ExpiresInMinutes"])),
                 signingCredentials: creds
             );
 
@@ -482,8 +554,8 @@ namespace MM_API.Services
             RefreshToken refreshToken = new RefreshToken
             {
                 Token = await GetUniqueTokenAsync(),
-                Created = DateTime.UtcNow,
-                Revoked = false
+                Created = DateTimeOffset.UtcNow.UtcDateTime,
+                Expires = DateTimeOffset.UtcNow.UtcDateTime.AddDays(1)
             };
 
             return refreshToken;
@@ -497,13 +569,49 @@ namespace MM_API.Services
             {
                 token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
-                var existingToken = await _dbContext.t_session
-                    .FirstOrDefaultAsync(s => s.session_refreshtoken.Token == token &&
-                                              s.session_refreshtoken.IsExpired == false);
+                string serialisedToken = JsonConvert.SerializeObject(token);
+
+                var existingToken = await _dbContext.t_session.FirstOrDefaultAsync(s => s.refreshtoken == serialisedToken);
                 tokenIsUnique = existingToken == null;
             } while (!tokenIsUnique);
             return token;
         }
+        //private async Task<string> GetUniqueTokenAsync()
+        //{
+        //    string token;
+        //    bool tokenIsUnique;
+        //    do
+        //    {
+        //        token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+        //        var existingToken = await _dbContext.t_session
+        //            .FirstOrDefaultAsync(s => s.session_refreshtoken.Token == token &&
+        //                                      s.session_refreshtoken.IsExpired == false);
+        //        tokenIsUnique = existingToken == null;
+        //    } while (!tokenIsUnique);
+        //    return token;
+        //}
+        private ClaimsPrincipal? GetTokenPrinciple(string token)
+        {
+            var validation = new TokenValidationParameters
+            {
+                ValidateActor = false,
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateLifetime = false,
+                ValidateSignatureLast = false,
+                ValidateTokenReplay = false,
+                ValidateWithLKG = false,
+
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!)),
+            };
+            return new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
+        }
+
+
+
+
 
         //public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
         //{
@@ -1504,6 +1612,10 @@ namespace MM_API.Services
 //    }
 //}
 
+//private readonly string FB_URL = "https://identitytoolkit.googleapis.com/v1";
+//private readonly string FB_URL_AUTH = "/accounts";
+//private readonly string FB_URL_TOKEN = "https://securetoken.googleapis.com/v1/token";
+//private readonly string FB_URL_APIKEY = $"?key={Environment.GetEnvironmentVariable("FIREBASE_API_KEY")}";
 #endregion
 
 

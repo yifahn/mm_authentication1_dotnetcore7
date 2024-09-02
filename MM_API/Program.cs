@@ -19,7 +19,7 @@ namespace MM_API
         {
             //CREATE WEBAPP BUILDER
             var builder = WebApplication.CreateBuilder(args);
-         
+
             // POSTGRESQL CONNECTION
             builder.Services.AddDbContext<MM_DbContext>(options =>
                 options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));

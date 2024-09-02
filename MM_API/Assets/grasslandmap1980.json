@@ -10,13 +10,13 @@
       "NodePosZ": 1
     },
     {
-      "NodePosY": 1,
-      "NodeCost": 0,
+      "NodePosY": 1, 
+      "NodeCost": 0, 
       "NodeLevel": 1,
-      "NodeType": 0,
+      "NodeType": 0, 
       "NodeIndex": 1,
-      "NodePosX": 2,
-      "NodePosZ": 1
+      "NodePosX": 2, 
+      "NodePosZ": 1 
     },
     {
       "NodePosY": 1,
