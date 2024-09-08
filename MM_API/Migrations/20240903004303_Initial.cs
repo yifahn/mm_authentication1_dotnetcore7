@@ -319,7 +319,7 @@ namespace MM_API.Migrations
             migrationBuilder.InsertData(
                 table: "AspNetUsers",
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "CustomUserId", "Email", "EmailConfirmed", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "135c836b-d7eb-4ae4-b863-63274de577e3", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEF3huPIi5LBG8tiq0Rqwi9GdtpNfba6BTZZIKO1F0oDQJVhxU6OKRRDFLgWsWXJmBg==", null, false, "568310b1-165e-43dc-b9df-9db35a86b4cf", false, "yifahnadmin" });
+                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "c36e0cca-35c1-4260-9898-2600e3689365", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEJK5xC4pk/ZwoFF00DdilzI61U1qWFR3Efma2mWc6E2FUoXKUTTunMGKYLQaL2OpqA==", null, false, "b20850c3-c903-40eb-a286-8c8b17cd2829", false, "yifahnadmin" });
 
             migrationBuilder.InsertData(
                 table: "AspNetUserRoles",

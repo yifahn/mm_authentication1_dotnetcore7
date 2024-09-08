@@ -1,24 +1,26 @@
-﻿using System.Text;
-using Newtonsoft.Json;
-
-using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-using SharedNetworkFramework.Authentication.Firebase.SignOut;
+﻿using SharedNetworkFramework.Authentication.Firebase.SignOut;
 using SharedNetworkFramework.Authentication.Firebase.Register;
 using SharedNetworkFramework.Authentication.Firebase.SignIn;
 using SharedNetworkFramework.Authentication.Firebase.RefreshToken;
 
 using MM_API.Database.Postgres.DbSchema;
 using MM_API.ErrorHandler;
-using System.Security.Cryptography;
-using Microsoft.EntityFrameworkCore;
 using MM_API.Database.Postgres;
-using System.Transactions;
+
+using Newtonsoft.Json;
+
+using Microsoft.IdentityModel.Tokens;
+
+using Microsoft.EntityFrameworkCore;
+
+using Microsoft.AspNetCore.Identity;
+
+using System.Text;
+
+using System.IdentityModel.Tokens.Jwt;
+
+using System.Security.Claims;
+using System.Security.Cryptography;
 
 namespace MM_API.Services
 {
@@ -39,215 +41,18 @@ namespace MM_API.Services
     {
 
         private readonly MM_DbContext _dbContext;
-
-        public AuthenticationService(MM_DbContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
-
-        private readonly string FB_URL = "https://identitytoolkit.googleapis.com/v1";
-        private readonly string FB_URL_AUTH = "/accounts";
-        private readonly string FB_URL_TOKEN = "https://securetoken.googleapis.com/v1/token";
-        private readonly string FB_URL_APIKEY = $"?key={Environment.GetEnvironmentVariable("FIREBASE_API_KEY")}";
-
-        /// <summary>
-        /// Register user with FirebaseAuth and PostgresDB
-        /// </summary>
-        /// 
-        /// <param name="registrationPayload"></param>
-        /// <returns>
-        /// RegistrationResponse or FirebaseError
-        /// </returns>
-        public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
-        {
-            try
-            {
-                string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signUp{FB_URL_APIKEY}";
-                using (var client = new HttpClient())
-                {
-                    var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(registrationPayload), Encoding.UTF8, "application/json"));
-                    string responseBody = await response.Content.ReadAsStringAsync();
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        RegistrationResponse registrationResponse = JsonConvert.DeserializeObject<RegistrationResponse>(responseBody);
-
-                        t_User user = new t_User
-                        {
-                            //     user_name = registrationResponse.Email.Substring(0, registrationResponse.Email.IndexOf('@')),
-
-                        };
-                        t_Session session = new t_Session()
-                        {
-                            // user = user,
-                            //   session_authtoken = registrationResponse.AuthToken,
-                            //   session_refreshtoken = registrationResponse.RefreshToken,
-                            session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
-
-                        };
-
-                        await _dbContext.AddAsync(user);
-                        await _dbContext.SaveChangesAsync();
-                        await _dbContext.AddAsync(session);
-                        await _dbContext.SaveChangesAsync();
-
-                        return registrationResponse;
-                    }
-                    else //https://learn.microsoft.com/en-us/aspnet/core/web-api/handle-errors?view=aspnetcore-8.0
-                    {
-                        //    FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
-                        return null;// firebaseErrorResponse;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
-                //TODO: Implement error logging from service classes and throw from service->controller->client and force client to exit to menu
-
-                //In future implementations:
-                //1. May implement PostgresDB error logging - cross referencing error log and with user's existing sign in/out history
-
-            }
-            return null; //Reaches here only if Internal Server Error?
-        }
-
-        /*       SIGNIN DTO
-        ________________________________|
-        SignInPayload                   |
-        ________________________________|
-                                        |
-        email	          |  string	    |
-        password	      |  string	    |
-        returnSecureToken |	 boolean	|
-                          |             |
-        ________________________________|
-        SignInResponse    |             |
-        ________________________________|
-                          |             |
-        idToken	          |  string	    |
-        email	          |  string	    |
-        refreshToken	  |  string	    |
-        expiresIn         |  string	    |
-        localId	          |  string	    |
-        registered        |  boolean	|
-         */
-
-        //[RequireHttps]
-        public async Task<ISignInResponse> SignInAsync(SignInPayload loginPayload)
-        {
-            try
-            {
-                string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signInWithPassword{FB_URL_APIKEY}";
-                using (var client = new HttpClient())
-                {
-                    var response = await client.PostAsync(fb_uri, new StringContent(JsonConvert.SerializeObject(loginPayload), Encoding.UTF8, "application/json"));
-                    string responseBody = await response.Content.ReadAsStringAsync();
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        SignInResponse signInResponse = JsonConvert.DeserializeObject<SignInResponse>(responseBody);
-
-                        //t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == signInResponse.LocalId);  //fk_user_id == user.user_id
-                        //var t_RecentSession = _dbContext.t_session.FirstOrDefault(s => s.user == user);
-                        //t_RecentSession.session_authtoken = signInResponse.AccessToken;
-                        //t_RecentSession.session_refreshtoken = signInResponse.RefreshToken;
-                        //t_RecentSession.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
-
-
-                        await _dbContext.SaveChangesAsync();
-
-                        return signInResponse;
-                    }
-                    else
-                    {
-                        //FirebaseError firebaseErrorResponse = JsonConvert.DeserializeObject<FirebaseError>(responseBody);
-                        return null;//firebaseErrorResponse;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Login failed: {ex.Message}");
-            }
-            return null;
-        }
-
-        //[RequireHttps]
-        public async Task<ISignOutResponse> SignOutAsync(SignOutPayload logoutPayload)
-        {
-            return null;
-        }
-
-        public async Task<IRefreshTokenResponse> RefreshTokenAsync(RefreshTokenPayload refreshTokenPayload)
-        {
-
-            return null;
-        }
-    }
-
-
-    //FIREBASE AUTH ENDPOINT SIGN-IN USER
-    /*
-    Request Body Payload
-
-    email	            string	
-    password	        string	
-    returnSecureToken	boolean	
-
-    Response Payload
-
-    idToken	        string	
-    email	            string	
-    refreshToken	    string	
-    expiresIn      	string	
-    localId	        string	
-    registered     	boolean	
-     */
-    //[RequireHttps]
-
-
-
-
-    #endregion
-
-    /// <summary>
-    /// DEVELOPMENT
-    /// </summary>
-    #region Development
-    public class TestAuthenticationService : IAuthenticationService
-    {
-
-        private readonly MM_DbContext _dbContext;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IConfiguration _configuration;
-        //  private readonly ClaimsPrincipal _claimsPrincipal;
 
-        //  private readonly HttpContextAccessor _contextAccessor;
-
-
-        public TestAuthenticationService(MM_DbContext dbContext, UserManager<ApplicationUser> identityUser, SignInManager<ApplicationUser> signInManager, RoleManager<IdentityRole> roleManager, IConfiguration configuration)//, ClaimsPrincipal claimsPrincipal , HttpContextAccessor contextAccessor
+        public AuthenticationService(MM_DbContext dbContext, UserManager<ApplicationUser> identityUser, SignInManager<ApplicationUser> signInManager, IConfiguration configuration)
         {
             _dbContext = dbContext;
             _userManager = identityUser;
-            _roleManager = roleManager;
             _signInManager = signInManager;
             _configuration = configuration;
-            // _contextAccessor = contextAccessor;
         }
 
-
-        /// <summary>
-        /// Register user with FirebaseAuth and PostgresDB
-        /// </summary>
-        /// 
-        /// <param name="registrationPayload"></param>
-        /// <returns>
-        /// RegistrationResponse or FirebaseError
-        /// </returns>
-        //[RequireHttps]
         public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
         {
             try
@@ -283,7 +88,6 @@ namespace MM_API.Services
 
                         var kingdom = new t_Kingdom()
                         {
-
                             kingdom_name = "null",
                             fk_user_id = user.user_id
                         };
@@ -291,11 +95,8 @@ namespace MM_API.Services
 
                         var character = new t_Character()
                         {
-
                             character_name = "null",
                             fk_user_id = user.user_id
-                            //   fk_kingdom_id = kingdom.kingdom_id,
-                            // character_inventory = new SharedGameFramework.Game.Character.Character_Inventory()
                         };
                         await _dbContext.AddAsync(character);
 
@@ -303,7 +104,6 @@ namespace MM_API.Services
                         {
 
                             fk_user_id = user.user_id
-                            // fk_character_id = character.character_id
                         };
                         await _dbContext.AddAsync(soupkitchen);
 
@@ -314,23 +114,15 @@ namespace MM_API.Services
                             treasury_multiplier = 0,
 
                             fk_user_id = user.user_id
-                            //  fk_kingdom_id = kingdom.kingdom_id 
                         };
                         await _dbContext.AddAsync(treasury);
 
                         var armoury = new t_Armoury()
                         {
-
                             fk_user_id = user.user_id
-
-
-                            //  fk_kingdom_id = kingdom.kingdom_id,
-                            // armoury_inventory = new SharedGameFramework.Game.Armoury.Armoury_Inventory()
                         };
+
                         await _dbContext.AddAsync(armoury);
-
-                        // await _dbContext.SaveChangesAsync();
-
 
                         var identityUser = new ApplicationUser()
                         {
@@ -363,28 +155,6 @@ namespace MM_API.Services
             return null;
         }
 
-        /*       SIGNIN DTO
-        ________________________________|
-        SignInPayload                   |
-        ________________________________|
-                                        |
-        email	          |  string	    |
-        password	      |  string	    |
-        returnSecureToken |	 boolean	|
-                          |             |
-        ________________________________|
-        SignInResponse    |             |
-        ________________________________|
-                          |             |
-        idToken	          |  string	    |
-        email	          |  string	    |
-        refreshToken	  |  string	    |
-        expiresIn         |  string	    |
-        localId	          |  string	    |
-        registered        |  boolean	|
-         */
-
-        // [RequireHttps]
         public async Task<ISignInResponse> SignInAsync(SignInPayload loginPayload)
         {
             try
@@ -420,54 +190,26 @@ namespace MM_API.Services
 
                 var serialisedRefreshToken = JsonConvert.SerializeObject(refreshToken);
 
-
-                // Check if a placeholder session exists for the user
                 t_Session session = await _dbContext.t_session
-                    .Where(s => s.session_loggedin == DateTimeOffset.MinValue && s.fk_user_id == user.CustomUserId)
+                    .Where(w => w.fk_user_id == user.CustomUserId && w.session_loggedin == DateTimeOffset.MinValue)
                     .FirstOrDefaultAsync();
 
                 if (session != null)
                 {
-                    // Update the existing placeholder session
-                    session.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime; // Set to current login time
-                    session.refreshtoken = serialisedRefreshToken;    // Update with new refresh token or any other data
+                    session.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
+                    session.refreshtoken = serialisedRefreshToken;
                 }
                 else
                 {
-                    // Create a new session entry for the user
                     session = new t_Session
                     {
                         fk_user_id = user.CustomUserId,
-                        session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,      // Set the current login time
-                        session_loggedout = DateTimeOffset.MinValue,   // Set logged out time to MinValue as it's not applicable yet
-                        refreshtoken = serialisedRefreshToken          // Set the refresh token or other initial data
+                        session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
+                        session_loggedout = DateTimeOffset.MinValue,
+                        refreshtoken = serialisedRefreshToken
                     };
-
-                    // Add the new session to the context
                     await _dbContext.t_session.AddAsync(session);
                 }
-
-                   // t_Session session = await _dbContext.t_session.Where(w => w.session_loggedin == DateTimeOffset.MinValue).FirstOrDefaultAsync(e => e.fk_user_id == user.CustomUserId); //FirstOrDefaultAsync(s => s.fk_user_id == user.CustomUserId && )  .LastOrDefaultAsync();
-               // session.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
-               // session.refreshtoken = serialisedRefreshToken;
-
-
-                //t_Session session = new t_Session()
-                //{
-                //    fk_user_id = user.CustomUserId,
-                //    session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
-                //    session_loggedout = DateTimeOffset.MinValue,
-                //    refreshtoken = serialisedRefreshToken
-                //};
-
-
-
-                // await _dbContext.t_session.LastAsync(s => s.fk_user_id == user.CustomUserId);
-
-                // session.refreshtoken = refreshToken.Token;
-                // session.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
-                //  session.session_loggedout = DateTimeOffset.MinValue;
-
 
                 await _dbContext.SaveChangesAsync();
 
@@ -484,85 +226,100 @@ namespace MM_API.Services
             }
             return null;
         }
-        // [RequireHttps]
-        //[Authorize]
+
         public async Task<ISignOutResponse> SignOutAsync(SignOutPayload logoutPayload)
         {
-            //  try
-            // {
-            // t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == logoutPayload.LocalId);
-            //  t_Session recentSession = await _dbContext.t_session
-            // .Where(s => s.fk_user_id == user.user_id)
-            //   .OrderByDescending(s => s.session_loggedin)
-            //  .FirstAsync();
 
-            // if (recentSession.session_loggedout == DateTimeOffset.MinValue)
-            //  {
-            //    recentSession.session_authtoken = "0";
-            //    recentSession.session_refreshtoken = "0";
-            //    recentSession.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
+            try
+            {
+                var principle = GetTokenPrinciple(logoutPayload.AuthToken);
+                List<Claim> claims = principle.Claims.ToList();
+                var identityUser = await _userManager.FindByIdAsync(principle.Claims.ElementAt(0).Value);//claims.ElementAt(0).Value
+                t_Session session = await _dbContext.t_session
+                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MinValue)
+                    .OrderByDescending(s => s.session_loggedin)
+                    .FirstOrDefaultAsync();
 
-            //   await _dbContext.SaveChangesAsync();
+                string serialisedRefreshToken = JsonConvert.SerializeObject(logoutPayload.RefreshToken);
+                string cleanSerialisedRefreshToken = session.refreshtoken.Replace(" ", "");
+                if (cleanSerialisedRefreshToken != serialisedRefreshToken) // as logout endpoint will require auth, user's refreshtoken in t_session should equal logoutpayload, if not it means user failed to logout in previous t_session entry
+                {
+                    string errorLog = "payload refresh token is not equal to stored refresh token";
+                    System.Diagnostics.Debug.WriteLine($"{errorLog}");
+                    //add case to logger - for now,
+                    session.refreshtoken = $"{JsonConvert.SerializeObject(errorLog)}";
+                    session.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
+                }
+                else
+                {
+                    session.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
+                    session.refreshtoken = $"{JsonConvert.SerializeObject("logout success")}";
+                }
 
-            // SignOutResponse signOutResponse = new SignOutResponse()
-            //  {
-            //  AuthToken = recentSession.session_sessiontoken,
-            //        RefreshToken = recentSession.session_refreshtoken,
-            //   LocalId = user.user_fb_uuid
-            //  };
-            //  return signOutResponse;
-            //  }
-            //  else
-            // {
-            //  System.Diagnostics.Debug.WriteLine($"Logout failed: {user.user_id} - {recentSession.session_id}");
-            //  }
-            // }
-            // catch (Exception ex)
-            // {
-            //    System.Diagnostics.Debug.WriteLine($"Logout failed: {ex.Message}");
-
-            // }
+                await _dbContext.SaveChangesAsync();
+                return new SignOutResponse
+                {
+                    IsSuccess = true
+                };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Signout failed: {ex.Message}");
+            }
             return null;
         }
+
         public async Task<IRefreshTokenResponse> RefreshTokenAsync(RefreshTokenPayload refreshTokenPayload)
         {
-            if (refreshTokenPayload.RefreshToken.Expires <= DateTimeOffset.UtcNow.UtcDateTime)
-                return new RefreshTokenResponse() { AuthToken = "null", RefreshToken = new RefreshToken() { Token = "null", Created = DateTimeOffset.MinValue, Expires = DateTimeOffset.MinValue } };
+            try
+            {
+                if (refreshTokenPayload.RefreshToken.Expires <= DateTimeOffset.UtcNow.UtcDateTime)
+                    return new RefreshTokenResponse() { AuthToken = "null", RefreshToken = new RefreshToken() { Token = "expired", Created = DateTimeOffset.MinValue, Expires = DateTimeOffset.MinValue } };
 
-            var principle = GetTokenPrinciple(refreshTokenPayload.AuthToken);
+                var principle = GetTokenPrinciple(refreshTokenPayload.AuthToken);
 
-            var response = new RefreshTokenResponse();
-            //if (principle?.Identity?.Name is null) //should always be valid
-            //    return response; 
+                List<Claim> claims = principle.Claims.ToList();
+                var identityUser = await _userManager.FindByIdAsync(principle.Claims.ElementAt(0).Value);
+                t_Session session = await _dbContext.t_session
+                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MinValue)
+                    .OrderByDescending(s => s.session_loggedin)
+                    .FirstOrDefaultAsync();
 
-            var identityUser = await _userManager.FindByNameAsync(principle.Identity.Name);
+                string serialisedRefreshToken = JsonConvert.SerializeObject(refreshTokenPayload.RefreshToken);
+                string cleanSerialisedRefreshToken = session.refreshtoken.Replace(" ", "");
 
-            response.AuthToken = GenerateAuthToken(identityUser).Result;
-            response.RefreshToken = GenerateRefreshTokenAsync().Result;
+                var response = new RefreshTokenResponse();
 
-            t_Session session = await _dbContext.t_session
-                .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MinValue)
-                .FirstOrDefaultAsync(); //LastOrDefaultAsync(s => s.fk_user_id == identityUser.CustomUserId);// && s.refreshtoken == refreshTokenPayload.RefreshToken);
-            RefreshToken deserialisedRefreshToken = JsonConvert.DeserializeObject<RefreshToken>(session.refreshtoken);
-            if (deserialisedRefreshToken == null)
-                throw new Exception();
+                if (cleanSerialisedRefreshToken != serialisedRefreshToken)
+                {
+                    string errorLog = "payload refresh token is not equal to stored refresh token";
+                    System.Diagnostics.Debug.WriteLine($"{errorLog}");
+                }
+                else
+                {
+                    response.AuthToken = GenerateAuthToken(identityUser).Result;
+                    response.RefreshToken = GenerateRefreshTokenAsync().Result;
 
-            if (deserialisedRefreshToken.Token != refreshTokenPayload.RefreshToken.Token)
-                throw new Exception();
+                    session.refreshtoken = $"{JsonConvert.SerializeObject(response.RefreshToken)}";
+                }
 
-            session.refreshtoken = JsonConvert.SerializeObject(response.RefreshToken);
+                await _dbContext.SaveChangesAsync();
 
-            await _dbContext.SaveChangesAsync();
-
-            return response;
+                return response;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Signout failed: {ex.Message}");
+            }
+            return null;
         }
         private async Task<string> GenerateAuthToken(ApplicationUser user)
         {
             var claims = new List<Claim>
             {
-                new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Sub, user.UserName), //user id
-                new Claim(Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()), //json token id
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName),
+
             };
 
             var userRoles = await _userManager.GetRolesAsync(user);
@@ -571,19 +328,19 @@ namespace MM_API.Services
                 claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
-            // var claims = _userService.GetUserClaims(userInfo.UserName).Select(name => new Claim(name, "true"));
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
+
                 issuer: _configuration["JwtSettings:Issuer"],
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
                 expires: DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:ExpiresInMinutes"])),
                 signingCredentials: creds
             );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            string writtenToken = new JwtSecurityTokenHandler().WriteToken(token);
+            return writtenToken;
         }
         public async Task<RefreshToken> GenerateRefreshTokenAsync()
         {
@@ -612,21 +369,7 @@ namespace MM_API.Services
             } while (!tokenIsUnique);
             return token;
         }
-        //private async Task<string> GetUniqueTokenAsync()
-        //{
-        //    string token;
-        //    bool tokenIsUnique;
-        //    do
-        //    {
-        //        token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
-        //        var existingToken = await _dbContext.t_session
-        //            .FirstOrDefaultAsync(s => s.session_refreshtoken.Token == token &&
-        //                                      s.session_refreshtoken.IsExpired == false);
-        //        tokenIsUnique = existingToken == null;
-        //    } while (!tokenIsUnique);
-        //    return token;
-        //}
         private ClaimsPrincipal? GetTokenPrinciple(string token)
         {
             var validation = new TokenValidationParameters
@@ -640,163 +383,386 @@ namespace MM_API.Services
                 ValidateWithLKG = false,
 
                 ValidateIssuerSigningKey = true,
+
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!)),
+
+                NameClaimType = ClaimTypes.Name,//"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+                RoleClaimType = ClaimTypes.Role,//"http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+
             };
-            return new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
+            ClaimsPrincipal claimsPrinciple = new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
+            return claimsPrinciple;
         }
-
-
-
-
-
-        //public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
-        //{
-        //    try
-        //    {
-        //        using (_dbContext.Database.BeginTransaction())
-        //        {
-
-
-        //            t_User user = new t_User()
-        //            {
-        //                user_name = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
-        //            };
-        //            await _dbContext.AddAsync(user);
-        //            await _dbContext.SaveChangesAsync();
-
-        //            t_Session session = new t_Session()
-        //            {
-        //                fk_user_id = user.user_id
-        //            };
-        //            await _dbContext.AddAsync(session);
-        //            await _dbContext.SaveChangesAsync();
-
-        //            t_Kingdom kingdom = new t_Kingdom()
-        //            {
-        //                fk_user_id = user.user_id
-        //            };
-        //            await _dbContext.AddAsync(kingdom);
-        //            await _dbContext.SaveChangesAsync();
-
-        //            t_Character character = new t_Character()
-        //            {
-        //                fk_kingdom_id = kingdom.kingdom_id
-        //            };
-        //            await _dbContext.AddAsync(character);
-        //            await _dbContext.SaveChangesAsync();
-
-        //            t_Soupkitchen soupkitchen = new t_Soupkitchen()
-        //            {
-        //                fk_character_id = character.character_id
-        //            };
-        //            await _dbContext.AddAsync(soupkitchen);
-        //            await _dbContext.SaveChangesAsync();
-
-        //            t_Treasury treasury = new t_Treasury()
-        //            {
-        //                fk_kingdom_id = kingdom.kingdom_id
-        //            };
-        //            await _dbContext.AddAsync(treasury);
-        //            await _dbContext.SaveChangesAsync();
-
-        //            t_Armoury armoury = new t_Armoury()
-        //            {
-        //                fk_kingdom_id = kingdom.kingdom_id
-        //            };
-        //            await _dbContext.AddAsync(armoury);
-        //            await _dbContext.SaveChangesAsync();
-
-        //            var identityUser = new ApplicationUser()
-        //            {
-        //                Id = Guid.NewGuid().ToString(),
-        //                UserName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
-        //                Email = registrationPayload.Email
-        //            };
-        //            var userResult = await _userManager.CreateAsync(identityUser, registrationPayload.Password);
-        //            var claimsResult = await _userManager.AddToRoleAsync(identityUser, "User");
-        //        }
-
-
-
-
-        //        return new RegistrationResponse()
-        //        {
-        //            Username = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
-        //        };
-        //    }
-        //    ///internally log error with accurate stack info - do not throw
-        //    catch (Exception ex)
-        //    {
-        //        System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
-        //    }
-        //    return null;
-        //}
-
-        //public async Task<string> GenerateRefreshTokenAsync(IdentityUser user)
-        //{
-        //    var refreshToken = new RefreshToken
-        //    {
-        //        Token = getUniqueToken(),
-        //        Expires = DateTime.UtcNow.AddDays(7),
-        //        Created = DateTime.UtcNow
-        //    };
-
-        //    return refreshToken.Token;
-
-        //    string getUniqueToken()
-        //    {
-        //        // token is a cryptographically strong random sequence of values
-        //        var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-        //        // ensure token is unique by checking against db
-        //        var tokenIsUnique = !_dbContext.t_session.Any(s => s.session_refreshtoken == token);
-
-        //        if (!tokenIsUnique)
-        //            return getUniqueToken();
-
-        //        return token;
-        //    }
-        //}
-        ////private string GenerateAndStoreRefreshToken(IdentityUser user)
-        ////{
-        ////    //// Generate a new refresh token (you can customize the generation process)
-        //    //var refreshToken = Guid.NewGuid().ToString();
-
-        //    //// Store the refresh token in the database (you may have a table to store user tokens)
-        //    //// Assuming you have a RefreshToken entity and DbContext is injected as _context
-        //    //Microsoft.AspNetCore.Authentication.JwtBearer.
-        //    //var refreshTokenEntity = new RefreshToken
-        //    //{
-        //    //    Token = refreshToken,
-        //    //    UserId = user.Id,
-        //    //    ExpirationDate = DateTime.UtcNow.AddDays(30) // Set your desired expiration period
-        //    //};
-
-        //    //_context.RefreshTokens.Add(refreshTokenEntity);
-        //    //await _context.SaveChangesAsync();
-
-        //    return null; //refreshToken;
-        //}
     }
 
-}
+    #endregion
 
+    /// <summary>
+    /// DEVELOPMENT
+    /// </summary>
+    #region Development
+    public class TestAuthenticationService : IAuthenticationService
+    {
+
+        private readonly MM_DbContext _dbContext;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly IConfiguration _configuration;
+
+        public TestAuthenticationService(MM_DbContext dbContext, UserManager<ApplicationUser> identityUser, SignInManager<ApplicationUser> signInManager, IConfiguration configuration)
+        {
+            _dbContext = dbContext;
+            _userManager = identityUser;
+            _signInManager = signInManager;
+            _configuration = configuration;
+        }
+
+        public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
+        {
+            try
+            {
+                using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        var userName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower();
+                        var user = new t_User()
+                        {
+                            user_name = userName
+                        };
+                        await _dbContext.AddAsync(user);
+                        await _dbContext.SaveChangesAsync();
+
+
+                        var refreshToken = new RefreshToken()
+                        {
+                            Token = "null",
+                            Expires = DateTimeOffset.MinValue,
+                            Created = DateTimeOffset.MinValue
+                        };
+                        var serialisedRefreshToken = JsonConvert.SerializeObject(refreshToken);
+                        var session = new t_Session()
+                        {
+                            session_loggedin = DateTimeOffset.MinValue,
+                            session_loggedout = DateTimeOffset.MinValue,
+                            refreshtoken = serialisedRefreshToken,
+                            fk_user_id = user.user_id
+                        };
+                        await _dbContext.AddAsync(session);
+
+                        var kingdom = new t_Kingdom()
+                        {
+                            kingdom_name = "null",
+                            fk_user_id = user.user_id
+                        };
+                        await _dbContext.AddAsync(kingdom);
+
+                        var character = new t_Character()
+                        {
+                            character_name = "null",
+                            fk_user_id = user.user_id
+                        };
+                        await _dbContext.AddAsync(character);
+
+                        var soupkitchen = new t_Soupkitchen()
+                        {
+
+                            fk_user_id = user.user_id
+                        };
+                        await _dbContext.AddAsync(soupkitchen);
+
+                        var treasury = new t_Treasury()
+                        {
+                            treasury_coin = 0,
+                            treasury_gainrate = 0,
+                            treasury_multiplier = 0,
+
+                            fk_user_id = user.user_id
+                        };
+                        await _dbContext.AddAsync(treasury);
+
+                        var armoury = new t_Armoury()
+                        {
+                            fk_user_id = user.user_id
+                        };
+
+                        await _dbContext.AddAsync(armoury);
+
+                        var identityUser = new ApplicationUser()
+                        {
+                            Id = Guid.NewGuid().ToString(),
+                            UserName = userName,
+                            Email = registrationPayload.Email,
+                            CustomUserId = user.user_id,
+                        };
+                        var userResult = await _userManager.CreateAsync(identityUser, registrationPayload.Password);
+                        var claimsResult = await _userManager.AddToRoleAsync(identityUser, "User");
+
+                        await transaction.CommitAsync();
+
+                        return new RegistrationResponse()
+                        {
+                            Username = userName,
+                        };
+                    }
+                    catch (Exception)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back");
+                        await transaction.RollbackAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+            }
+            return null;
+        }
+
+        public async Task<ISignInResponse> SignInAsync(SignInPayload loginPayload)
+        {
+            try
+            {
+                var user = await _userManager.FindByEmailAsync(loginPayload.Email);
+                if (user == null)
+                {
+                    return new AuthenticationErrorHandler
+                    {
+                        Errors = [new IdentityError
+                        {
+                            Code = "Bad Credentials",
+                            Description = "Invalid email or password."
+                        }]
+                    };
+                }
+
+                var signInResult = await _signInManager.CheckPasswordSignInAsync(user, loginPayload.Password, lockoutOnFailure: false);
+
+                if (!signInResult.Succeeded)
+                {
+                    return new AuthenticationErrorHandler
+                    {
+                        Errors = [new IdentityError
+                        {
+                            Code = "Bad Credentials",
+                            Description = "Invalid email or password."
+                        }]
+                    };
+                }
+                string authToken = await GenerateAuthToken(user);
+                RefreshToken refreshToken = await GenerateRefreshTokenAsync();
+
+                var serialisedRefreshToken = JsonConvert.SerializeObject(refreshToken);
+
+                t_Session session = await _dbContext.t_session
+                    .Where(w => w.fk_user_id == user.CustomUserId && w.session_loggedin == DateTimeOffset.MinValue)
+                    .FirstOrDefaultAsync();
+
+                if (session != null)
+                {
+                    session.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
+                    session.refreshtoken = serialisedRefreshToken;
+                }
+                else
+                {
+                    session = new t_Session
+                    {
+                        fk_user_id = user.CustomUserId,
+                        session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
+                        session_loggedout = DateTimeOffset.MinValue,
+                        refreshtoken = serialisedRefreshToken
+                    };
+                    await _dbContext.t_session.AddAsync(session);
+                }
+
+                await _dbContext.SaveChangesAsync();
+
+                return new SignInResponse
+                {
+                    Username = user.UserName,
+                    AuthToken = authToken,
+                    RefreshToken = refreshToken
+                };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+            }
+            return null;
+        }
+
+        public async Task<ISignOutResponse> SignOutAsync(SignOutPayload logoutPayload)
+        {
+
+            try
+            {
+                var principle = GetTokenPrinciple(logoutPayload.AuthToken);
+                List<Claim> claims = principle.Claims.ToList();
+                var identityUser = await _userManager.FindByIdAsync(principle.Claims.ElementAt(0).Value);//claims.ElementAt(0).Value
+                t_Session session = await _dbContext.t_session
+                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MinValue)
+                    .OrderByDescending(s => s.session_loggedin)
+                    .FirstOrDefaultAsync();
+
+                string serialisedRefreshToken = JsonConvert.SerializeObject(logoutPayload.RefreshToken);
+                string cleanSerialisedRefreshToken = session.refreshtoken.Replace(" ", "");
+                if (cleanSerialisedRefreshToken != serialisedRefreshToken) // as logout endpoint will require auth, user's refreshtoken in t_session should equal logoutpayload, if not it means user failed to logout in previous t_session entry
+                {
+                    string errorLog = "payload refresh token is not equal to stored refresh token";
+                    System.Diagnostics.Debug.WriteLine($"{errorLog}");
+                    //add case to logger - for now,
+                    session.refreshtoken = $"{JsonConvert.SerializeObject(errorLog)}";
+                    session.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
+                }
+                else
+                {
+                    session.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
+                    session.refreshtoken = $"{JsonConvert.SerializeObject("logout success")}";
+                }
+
+                await _dbContext.SaveChangesAsync();
+                return new SignOutResponse
+                {
+                    IsSuccess = true
+                };
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Signout failed: {ex.Message}");
+            }
+            return null;
+        }
+
+        public async Task<IRefreshTokenResponse> RefreshTokenAsync(RefreshTokenPayload refreshTokenPayload)
+        {
+            try
+            {
+                if (refreshTokenPayload.RefreshToken.Expires <= DateTimeOffset.UtcNow.UtcDateTime)
+                    return new RefreshTokenResponse() { AuthToken = "null", RefreshToken = new RefreshToken() { Token = "expired", Created = DateTimeOffset.MinValue, Expires = DateTimeOffset.MinValue } };
+
+                var principle = GetTokenPrinciple(refreshTokenPayload.AuthToken);
+
+                List<Claim> claims = principle.Claims.ToList();
+                var identityUser = await _userManager.FindByIdAsync(principle.Claims.ElementAt(0).Value);
+                t_Session session = await _dbContext.t_session
+                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MinValue)
+                    .OrderByDescending(s => s.session_loggedin)
+                    .FirstOrDefaultAsync();
+
+                string serialisedRefreshToken = JsonConvert.SerializeObject(refreshTokenPayload.RefreshToken);
+                string cleanSerialisedRefreshToken = session.refreshtoken.Replace(" ", "");
+
+                var response = new RefreshTokenResponse();
+
+                if (cleanSerialisedRefreshToken != serialisedRefreshToken)
+                {
+                    string errorLog = "payload refresh token is not equal to stored refresh token";
+                    System.Diagnostics.Debug.WriteLine($"{errorLog}");
+                }
+                else
+                {
+                    response.AuthToken = GenerateAuthToken(identityUser).Result;
+                    response.RefreshToken = GenerateRefreshTokenAsync().Result;
+
+                    session.refreshtoken = $"{JsonConvert.SerializeObject(response.RefreshToken)}";
+                }
+
+                await _dbContext.SaveChangesAsync();
+
+                return response;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Signout failed: {ex.Message}");
+            }
+            return null;
+        }
+        private async Task<string> GenerateAuthToken(ApplicationUser user)
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Name, user.UserName),
+
+            };
+
+            var userRoles = await _userManager.GetRolesAsync(user);
+            foreach (var role in userRoles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+
+                issuer: _configuration["JwtSettings:Issuer"],
+                audience: _configuration["JwtSettings:Audience"],
+                claims: claims,
+                //expires: DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:ExpiresInMinutes"])),
+                expires: DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(3),
+                signingCredentials: creds
+            );
+            string writtenToken = new JwtSecurityTokenHandler().WriteToken(token);
+            return writtenToken;
+        }
+        public async Task<RefreshToken> GenerateRefreshTokenAsync()
+        {
+            RefreshToken refreshToken = new RefreshToken
+            {
+                Token = await GetUniqueTokenAsync(),
+                Created = DateTimeOffset.UtcNow.UtcDateTime,
+                //Expires = DateTimeOffset.UtcNow.UtcDateTime.AddDays(1)
+                Expires = DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(6)
+            };
+
+            return refreshToken;
+        }
+
+        private async Task<string> GetUniqueTokenAsync()
+        {
+            string token;
+            bool tokenIsUnique;
+            do
+            {
+                token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+
+                string serialisedToken = JsonConvert.SerializeObject(token);
+
+                var existingToken = await _dbContext.t_session.FirstOrDefaultAsync(s => s.refreshtoken == serialisedToken);
+                tokenIsUnique = existingToken == null;
+            } while (!tokenIsUnique);
+            return token;
+        }
+
+        private ClaimsPrincipal? GetTokenPrinciple(string token)
+        {
+            var validation = new TokenValidationParameters
+            {
+                ValidateActor = false,
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateLifetime = false,
+                ValidateSignatureLast = false,
+                ValidateTokenReplay = false,
+                ValidateWithLKG = false,
+
+                ValidateIssuerSigningKey = true,
+
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!)),
+
+                NameClaimType = ClaimTypes.Name,//"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+                RoleClaimType = ClaimTypes.Role,//"http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+
+            };
+            ClaimsPrincipal claimsPrinciple = new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
+            return claimsPrinciple;
+        }
+    }
+}
 #endregion
 
-
-//if (!userResult.Succeeded)
-//{
-//    return new AuthenticationErrorHandler()
-//    {
-//        Errors = userResult.Errors.ToArray() //may need to instantiate new Error array prior to assignment?
-//    };
-//}
-//if (!claimResult.Succeeded)
-//{
-//    return new AuthenticationErrorHandler()
-//    {
-//        Errors = claimResult.Errors.ToArray()
-//    };
-//}
 #region Legacy Code
 
 //public TestAuthenticationService(MM_DbContext dbContext)

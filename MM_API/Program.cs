@@ -1,14 +1,18 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using System.Text;
 
+using Microsoft.EntityFrameworkCore;
+
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.JsonWebTokens;
+
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.UI;
 
 using MM_API.Database.Postgres.DbSchema;
 using MM_API.Database.Postgres;
+using System.Security.Claims;
 
 namespace MM_API
 {
@@ -57,13 +61,21 @@ namespace MM_API
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
+                    NameClaimType = ClaimTypes.Name,  //"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+                    RoleClaimType = ClaimTypes.Role, //"http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+
                     ValidateIssuer = true,
-                    ValidateAudience = false,
+                    ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
+
+                    ValidAudience = builder.Configuration["JwtSettings:Audience"],
                     ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!)),
-                    SaveSigninToken = true
+                   
+                    ClockSkew = TimeSpan.Zero,
+                    RequireSignedTokens = true,
+                    //SaveSigninToken = true
                 };
             });
             #endregion

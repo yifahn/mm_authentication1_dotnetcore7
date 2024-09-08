@@ -16,12 +16,10 @@ namespace MM_API.Controllers
     public class AuthenticationController : Controller
     {
         private readonly IAuthenticationService _authenticationService;
-        private readonly IConfiguration _configuration;
 
-        public AuthenticationController(IAuthenticationService authenticationService, IConfiguration configuration)
+        public AuthenticationController(IAuthenticationService authenticationService)
         {
             _authenticationService = authenticationService;
-            _configuration = configuration;
 
         }
 
@@ -114,13 +112,14 @@ namespace MM_API.Controllers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Logout failed: {ex.Message}");
                 return StatusCode(500, "Internal Server Error");
             }
         }
 
         //localhost:5223/authentication/refresh
-       // [RequireHttps]
+        // [RequireHttps]
+        [Authorize(Policy = "UserPolicy")]
         [HttpPost("refresh")]
         public async Task<ActionResult<IRefreshTokenResponse>> RefreshAsync([FromBody] RefreshTokenPayload payload)
         {
@@ -143,7 +142,7 @@ namespace MM_API.Controllers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Refresh failed: {ex.Message}");
                 return StatusCode(500, "Internal Server Error");
             }
         }
