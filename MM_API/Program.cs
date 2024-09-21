@@ -75,7 +75,7 @@ namespace MM_API
                    
                     ClockSkew = TimeSpan.Zero,
                     RequireSignedTokens = true,
-                    //SaveSigninToken = true
+                    SaveSigninToken = true //required to access token from header
                 };
             });
             #endregion

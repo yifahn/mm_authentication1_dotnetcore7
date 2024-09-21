@@ -49,7 +49,7 @@ namespace MM_API.Controllers
         //localhost:5223/kingdom/loadmap
         [Authorize(Policy = "UserPolicy")]
         [HttpPost("loadmap")]
-        public async Task<ActionResult<IMapLoadResponse>> LoadMap([FromBody] MapLoadPayload payload)
+        public async Task<ActionResult<IMapLoadResponse>> LoadMap()//[FromBody] MapLoadPayload payload
         {
             if (!ModelState.IsValid)
             {
@@ -57,7 +57,7 @@ namespace MM_API.Controllers
             }
             try
             {
-                var result = await _kingdomService.LoadMap(payload);
+                var result = await _kingdomService.LoadMap();
                 if (result is IMapLoadResponse)
                 {
                     return Ok(result);

@@ -11,7 +11,7 @@ namespace MM_API.Database.Postgres.DbSchema
     {
         [Key]
         public int user_id { get; set; }
-        [AllowNull]
+
         public string user_name { get; set; }
     }
 }

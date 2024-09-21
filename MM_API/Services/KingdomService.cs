@@ -1,21 +1,37 @@
-﻿using MM_API.Database.Postgres.DbSchema;
-using System.Text;
+﻿using System.Security.Claims;
+
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 using Microsoft.EntityFrameworkCore;
-using SharedNetworkFramework.Game.Kingdom.Map;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
+
+using MM_API.Database.Postgres.DbSchema;
 using MM_API.Database.Postgres;
+
+using SharedNetworkFramework.Game.Kingdom.Map;
+
+using SharedGameFramework.Game.Kingdom.Map;
+using SharedGameFramework.Game.Kingdom.Map.Node;
+using SharedGameFramework.Game.Kingdom.Map.Node.Grassland;
+using SharedGameFramework.Game.Kingdom.Map.Node.TownCentre;
+using SharedGameFramework.Game.Kingdom.Map.Node.House;
+using SharedGameFramework.Game.Kingdom.Map.Node.Library;
+using SharedGameFramework.Game.Kingdom.Map.Node.Factory;
+using SharedGameFramework.Game.Kingdom.Map.Node.Road;
+using SharedGameFramework.Game.Kingdom.Map.Node.Blockade;
+using SharedGameFramework.Game.Kingdom.Map.Node.MTower;
+using SharedGameFramework.Game.Kingdom.Map.Node.Wonder;
 
 namespace MM_API.Services
 {
     public interface IKingdomService
     {
-      //  public Task<IMapNewResponse> NewMap(MapNewPayload payload);
-        public Task<IMapLoadResponse> LoadMap(MapLoadPayload payload);
+        //  public Task<IMapNewResponse> NewMap(MapNewPayload payload);
+        public Task<IMapLoadResponse> LoadMap();//MapLoadPayload payload
         public Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload payload);
 
 
@@ -24,7 +40,7 @@ namespace MM_API.Services
 
     /*          NewMapPayload DTO
     ________________________________|
-    SignInPayload                   |
+    LoginPayload                   |
     ________________________________|
                                     |
     email	          |  string	    |
@@ -32,7 +48,7 @@ namespace MM_API.Services
     returnSecureToken |	 boolean	|
                       |             |
     ________________________________|
-    SignInResponse    |             |
+    LoginResponse    |             |
     ________________________________|
                       |             |
     idToken	          |  string	    |
@@ -46,7 +62,7 @@ namespace MM_API.Services
     /*
      *          SIGNIN DTO
     ________________________________|       
-    SignInPayload                   |       
+    LoginPayload                   |       
     ________________________________|       
                                     |       
     email	          |  string	    |       
@@ -54,7 +70,7 @@ namespace MM_API.Services
     returnSecureToken |	 boolean	|       
                       |             |       
     ________________________________|       
-    SignInResponse    |             |       
+    LoginResponse    |             |       
     ________________________________|       
                       |             |       
     idToken	          |  string	    |       
@@ -80,11 +96,11 @@ namespace MM_API.Services
 
         }
 
-        public async Task<IMapNewResponse> NewMap(MapNewPayload mapNewPayload)
-        {
-            return null;
-        }
-        public async Task<IMapLoadResponse> LoadMap(MapLoadPayload mapLoadPayload)
+        //public async Task<IMapNewResponse> NewMap(MapNewPayload mapNewPayload)
+        //{
+        //    return null;
+        //}
+        public async Task<IMapLoadResponse> LoadMap()//MapLoadPayload mapLoadPayload
         {
             return null;
         }
@@ -98,43 +114,50 @@ namespace MM_API.Services
     #region Development
     public class TestKingdomService : IKingdomService
     {
-       // private readonly SignInManager<IdentityUser> _signInManager;
+        // private readonly SignInManager<IdentityUser> _signInManager;
         private readonly MM_DbContext _dbContext;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IWebHostEnvironment _env;
 
-        public TestKingdomService(MM_DbContext dbContext, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IHttpContextAccessor httpContextAccessor)
+        public TestKingdomService(MM_DbContext dbContext, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager, IHttpContextAccessor httpContextAccessor, IWebHostEnvironment env)
         {
             _dbContext = dbContext;
             _userManager = userManager;
             _roleManager = roleManager;
             _httpContextAccessor = httpContextAccessor;
+            _env = env;
         }
-        //[Authorize(Policy = "NewGamePolicy")]
-        //public async Task<IMapNewResponse> NewMap(MapNewPayload mapNewPayload)
-        //{
-        //    var user = await _userManager.FindByNameAsync("test123");
-        //    await _userManager.RemoveFromRoleAsync(user, "NewGame");
-        //    return null;
-        //}
-       // [Authorize(Policy = "UserPolicy")]
-        public async Task<IMapLoadResponse> LoadMap(MapLoadPayload mapLoadPayload)
+        public async Task<IMapLoadResponse> LoadMap()//MapLoadPayload mapLoadPayload
         {
-            var email = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
-            var user = await _userManager.FindByEmailAsync(email);
-            var userClaims = await _userManager.GetClaimsAsync(user);
-            var newGameClaim = userClaims.FirstOrDefault(c => c.Type == "NewGame" && c.Value == "true");
-            if (newGameClaim != null)
+            var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
+            var user = await _userManager.FindByIdAsync(userId);
+
+            t_Kingdom map = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
+
+            //var settings = new JsonSerializerSettings
+            //{
+            //    Converters = new List<JsonConverter> { new NodeConverter() }
+            //};
+
+            //Map deserialisedMap = JsonConvert.DeserializeObject<Map>(map.kingdom_map, settings);
+
+            var loadMapResponse = new MapLoadResponse()
             {
+                Map = map.kingdom_map
+            };
 
+            return loadMapResponse;
 
+            //var response = new MapLoadResponse()
+            //{
+            //    Map = new SharedGameFramework.Game.Kingdom.Map.Map(Node) 
+            //    {
+            //    }
+            //};
 
-                await _userManager.RemoveClaimAsync(user, newGameClaim);
-                var newClaim = new Claim("NewGame", "false");
-                await _userManager.AddClaimAsync(user, newClaim);
-            }
-            return null;
+            
         }
         public async Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload mapUpdatePayload)
         {
@@ -142,6 +165,52 @@ namespace MM_API.Services
         }
 
     }
+    //chatgpt puke
+    public class NodeConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            return typeof(Node).IsAssignableFrom(objectType);
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+        {
+            JObject jsonObject = JObject.Load(reader);
+            int nodeType = jsonObject["NodeType"].Value<int>();
+
+            Node node = nodeType switch
+            {
+                0 => new Grassland(),   // GL
+                1 => new TownCentre(),  // TC
+                2 => new House(),       // H
+                3 => new Library(),     // L
+                4 => new Factory(),     // F
+                5 => new Road(),        // R
+                6 => new Blockade(),    // B
+                7 => new MTower(),      // MT
+                8 => new Wonder(),      // W
+                //_ => throw new ArgumentException("Unknown node type")
+            };
+
+            // Populate the properties of the node using the jsonObject
+            serializer.Populate(jsonObject.CreateReader(), node);
+
+            return node;
+        }
+
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            throw new NotImplementedException("Serialization not required in this example.");
+        }
+    }
+    //var email = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(c => c.Type == "sub")?.Value;
+    //var user = await _userManager.FindByEmailAsync(email);
+    //var userClaims = await _userManager.GetClaimsAsync(user);
+    //var newGameClaim = userClaims.FirstOrDefault(c => c.Type == "NewGame" && c.Value == "true");
+    //await _userManager.RemoveClaimAsync(user, newGameClaim);
+    //var newClaim = new Claim("NewGame", "false");
+    //await _userManager.AddClaimAsync(user, newClaim);
+
     #endregion
     //public async Task<Map> NewMap()
     //{

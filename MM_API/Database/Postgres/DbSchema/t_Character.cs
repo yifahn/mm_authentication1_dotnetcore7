@@ -10,7 +10,6 @@ namespace MM_API.Database.Postgres.DbSchema
     {
         [Key]
         public int character_id { get; set; }
-        [AllowNull]
         public string character_name { get; set; }
 
         public int fk_user_id { get; set; }
@@ -19,6 +18,11 @@ namespace MM_API.Database.Postgres.DbSchema
         public t_User User { get; set; }
 
 
+        [Column(TypeName = "jsonb")]
+        public string character_sheet { get; set; }
+
+        [Column(TypeName = "jsonb")]
+        public string character_inventory { get; set; } //= new CharacterInventory();
     }
 }
 //[Key]
@@ -35,7 +39,7 @@ namespace MM_API.Database.Postgres.DbSchema
 //public int political_points { get; set; }
 //[AllowNull]
 //[Column(TypeName = "jsonb")]
-//public Character_Inventory character_inventory { get; set; } //= new Character_Inventory();
+//public CharacterInventory character_inventory { get; set; } //= new CharacterInventory();
 
 //[Column(TypeName = "jsonb")]
 //public CharacterSheet character_sheet { get; set; }

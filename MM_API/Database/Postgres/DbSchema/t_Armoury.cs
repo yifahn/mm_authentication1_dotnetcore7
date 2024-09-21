@@ -11,13 +11,13 @@ namespace MM_API.Database.Postgres.DbSchema
         [Key]
         public int armoury_id { get; set; }
 
-
         public int fk_user_id { get; set; }
 
         [ForeignKey("fk_user_id")]
         public t_User User { get; set; }
 
-
+        [Column(TypeName = "jsonb")]
+        public string armoury_inventory { get; set; }
     }
 }
 //public int fk_kingdom_id { get; set; }
@@ -27,4 +27,4 @@ namespace MM_API.Database.Postgres.DbSchema
 
 //[AllowNull]
 //[Column(TypeName = "jsonb")]
-//public Armoury_Inventory armoury_inventory { get; set; }
+//public ArmouryInventory armoury_inventory { get; set; }

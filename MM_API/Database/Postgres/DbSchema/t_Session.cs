@@ -1,7 +1,6 @@
-﻿using SharedNetworkFramework.Authentication.Firebase.RefreshToken;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Diagnostics.CodeAnalysis;
+
 
 namespace MM_API.Database.Postgres.DbSchema
 {
@@ -17,14 +16,11 @@ namespace MM_API.Database.Postgres.DbSchema
         public t_User User { get; set; }
 
 
-        //[AllowNull]
         [Column(TypeName = "jsonb")]
         public string refreshtoken { get; set; }
 
-
-        //[AllowNull]
         public DateTimeOffset session_loggedin { get; set; }
-        //[AllowNull]
+
         public DateTimeOffset session_loggedout { get; set; }
     }
 }

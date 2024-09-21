@@ -15,7 +15,7 @@ namespace MM_API
         private readonly string _jwtSecret = "your-secret-key"; // Replace with your actual secret key
 
         [HttpPost("login")]
-        public async Task<IActionResult> SignInAsync([FromBody] LoginRequest loginRequest)
+        public async Task<IActionResult> LoginAsync([FromBody] LoginRequest loginRequest)
         {
             try
             {

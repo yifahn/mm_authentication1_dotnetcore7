@@ -1,9 +1,4 @@
-﻿using SharedNetworkFramework.Authentication.Firebase.SignOut;
-using SharedNetworkFramework.Authentication.Firebase.Register;
-using SharedNetworkFramework.Authentication.Firebase.SignIn;
-using SharedNetworkFramework.Authentication.Firebase.RefreshToken;
-
-using MM_API.Database.Postgres.DbSchema;
+﻿using MM_API.Database.Postgres.DbSchema;
 using MM_API.ErrorHandler;
 using MM_API.Database.Postgres;
 
@@ -21,6 +16,13 @@ using System.IdentityModel.Tokens.Jwt;
 
 using System.Security.Claims;
 using System.Security.Cryptography;
+using SharedNetworkFramework.Authentication.RefreshToken;
+using SharedNetworkFramework.Authentication.Register;
+using SharedNetworkFramework.Authentication.Login;
+using SharedNetworkFramework.Authentication.Logout;
+using SharedGameFramework.Game.Kingdom.Map.Node;
+using SharedGameFramework.Game.Kingdom.Map;
+using SharedGameFramework.Game.Character;
 
 namespace MM_API.Services
 {
@@ -28,8 +30,8 @@ namespace MM_API.Services
     public interface IAuthenticationService
     {
         public Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload);
-        public Task<ISignInResponse> SignInAsync(SignInPayload loginPayload);
-        public Task<ISignOutResponse> SignOutAsync(SignOutPayload logoutPayload);
+        public Task<ILoginResponse> LoginAsync(LoginPayload loginPayload);
+        public Task<ILogoutResponse> LogoutAsync(LogoutPayload logoutPayload);
         public Task<IRefreshTokenResponse> RefreshTokenAsync(RefreshTokenPayload refreshTokenPayload);
     }
 
@@ -155,7 +157,7 @@ namespace MM_API.Services
             return null;
         }
 
-        public async Task<ISignInResponse> SignInAsync(SignInPayload loginPayload)
+        public async Task<ILoginResponse> LoginAsync(LoginPayload loginPayload)
         {
             try
             {
@@ -213,7 +215,7 @@ namespace MM_API.Services
 
                 await _dbContext.SaveChangesAsync();
 
-                return new SignInResponse
+                return new LoginResponse
                 {
                     Username = user.UserName,
                     AuthToken = authToken,
@@ -227,7 +229,7 @@ namespace MM_API.Services
             return null;
         }
 
-        public async Task<ISignOutResponse> SignOutAsync(SignOutPayload logoutPayload)
+        public async Task<ILogoutResponse> LogoutAsync(LogoutPayload logoutPayload)
         {
 
             try
@@ -257,7 +259,7 @@ namespace MM_API.Services
                 }
 
                 await _dbContext.SaveChangesAsync();
-                return new SignOutResponse
+                return new LogoutResponse
                 {
                     IsSuccess = true
                 };
@@ -408,13 +410,15 @@ namespace MM_API.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _env;
 
-        public TestAuthenticationService(MM_DbContext dbContext, UserManager<ApplicationUser> identityUser, SignInManager<ApplicationUser> signInManager, IConfiguration configuration)
+        public TestAuthenticationService(MM_DbContext dbContext, UserManager<ApplicationUser> identityUser, SignInManager<ApplicationUser> signInManager, IConfiguration configuration, IWebHostEnvironment env)
         {
             _dbContext = dbContext;
             _userManager = identityUser;
             _signInManager = signInManager;
             _configuration = configuration;
+            _env = env;
         }
 
         public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
@@ -450,24 +454,40 @@ namespace MM_API.Services
                         };
                         await _dbContext.AddAsync(session);
 
+                        var grasslandFilePath = Path.Combine(_env.ContentRootPath, "assets", "grasslandmap1980.json");
+                        string grasslandMapJson = await File.ReadAllTextAsync(grasslandFilePath);
+
+                       // string serialisedGrasslandMap = JsonConvert.SerializeObject(grasslandMapJson);
+                        //var settings = new JsonSerializerSettings
+                        //{
+                        //    Converters = new List<JsonConverter> { new NodeConverter() }
+                        //};
+                        //dynamic map = JsonConvert.DeserializeObject<Map>(grasslandMapJson, settings);
+
                         var kingdom = new t_Kingdom()
                         {
                             kingdom_name = "null",
-                            fk_user_id = user.user_id
+                            fk_user_id = user.user_id,
+                            kingdom_map = grasslandMapJson,
+                            
                         };
                         await _dbContext.AddAsync(kingdom);
 
                         var character = new t_Character()
                         {
                             character_name = "null",
-                            fk_user_id = user.user_id
+                            fk_user_id = user.user_id,
+                            character_inventory = JsonConvert.SerializeObject(""),
+                            character_sheet = JsonConvert.SerializeObject("")
+
                         };
                         await _dbContext.AddAsync(character);
 
                         var soupkitchen = new t_Soupkitchen()
                         {
 
-                            fk_user_id = user.user_id
+                            fk_user_id = user.user_id,
+                            
                         };
                         await _dbContext.AddAsync(soupkitchen);
 
@@ -483,7 +503,8 @@ namespace MM_API.Services
 
                         var armoury = new t_Armoury()
                         {
-                            fk_user_id = user.user_id
+                            fk_user_id = user.user_id,
+                            armoury_inventory = JsonConvert.SerializeObject(""),
                         };
 
                         await _dbContext.AddAsync(armoury);
@@ -512,14 +533,14 @@ namespace MM_API.Services
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex)     
             {
                 System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
             }
             return null;
         }
 
-        public async Task<ISignInResponse> SignInAsync(SignInPayload loginPayload)
+        public async Task<ILoginResponse> LoginAsync(LoginPayload loginPayload)
         {
             try
             {
@@ -577,7 +598,7 @@ namespace MM_API.Services
 
                 await _dbContext.SaveChangesAsync();
 
-                return new SignInResponse
+                return new LoginResponse
                 {
                     Username = user.UserName,
                     AuthToken = authToken,
@@ -591,7 +612,7 @@ namespace MM_API.Services
             return null;
         }
 
-        public async Task<ISignOutResponse> SignOutAsync(SignOutPayload logoutPayload)
+        public async Task<ILogoutResponse> LogoutAsync(LogoutPayload logoutPayload)
         {
 
             try
@@ -621,14 +642,14 @@ namespace MM_API.Services
                 }
 
                 await _dbContext.SaveChangesAsync();
-                return new SignOutResponse
+                return new LogoutResponse
                 {
                     IsSuccess = true
                 };
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Signout failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Logout failed: {ex.Message}");
             }
             return null;
         }
@@ -700,8 +721,8 @@ namespace MM_API.Services
                 issuer: _configuration["JwtSettings:Issuer"],
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
-                //expires: DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:ExpiresInMinutes"])),
-                expires: DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(3),
+                expires: DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:ExpiresInMinutes"])),
+                //expires: DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(3),
                 signingCredentials: creds
             );
             string writtenToken = new JwtSecurityTokenHandler().WriteToken(token);
@@ -713,8 +734,8 @@ namespace MM_API.Services
             {
                 Token = await GetUniqueTokenAsync(),
                 Created = DateTimeOffset.UtcNow.UtcDateTime,
-                //Expires = DateTimeOffset.UtcNow.UtcDateTime.AddDays(1)
-                Expires = DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(6)
+                Expires = DateTimeOffset.UtcNow.UtcDateTime.AddDays(1)
+                //Expires = DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(6)
             };
 
             return refreshToken;
@@ -828,7 +849,7 @@ namespace MM_API.Services
 
 ///*       SIGNIN DTO
 //________________________________|
-//SignInPayload                   |
+//LoginPayload                   |
 //________________________________|
 //                                |
 //email	          |  string	    |
@@ -836,7 +857,7 @@ namespace MM_API.Services
 //returnSecureToken |	 boolean	|
 //                  |             |
 //________________________________|
-//SignInResponse    |             |
+//LoginResponse    |             |
 //________________________________|
 //                  |             |
 //idToken	          |  string	    |
@@ -848,7 +869,7 @@ namespace MM_API.Services
 // */
 
 ////[RequireHttps]
-//public async Task<ISignInResponse> SignInAsync(SignInPayload loginPayload)
+//public async Task<ILoginResponse> LoginAsync(LoginPayload loginPayload)
 //{
 //    try
 //    {
@@ -860,7 +881,7 @@ namespace MM_API.Services
 
 //            if (response.IsSuccessStatusCode)
 //            {
-//                SignInResponse signInResponse = JsonConvert.DeserializeObject<SignInResponse>(responseBody);
+//                LoginResponse signInResponse = JsonConvert.DeserializeObject<LoginResponse>(responseBody);
 
 //                t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == signInResponse.LocalId);  //fk_user_id == user.user_id
 //                System.Diagnostics.Debug.WriteLine($"{user.user_id} - {user.user_fb_uuid} - {user.user_name}");
@@ -893,7 +914,7 @@ namespace MM_API.Services
 //}
 
 ////[RequireHttps]
-//public async Task<ISignOutResponse> SignOutAsync(SignOutPayload logoutPayload)
+//public async Task<ILogoutResponse> LogoutAsync(LogoutPayload logoutPayload)
 //{
 //    try
 //    {
@@ -911,7 +932,7 @@ namespace MM_API.Services
 
 //            await _dbContext.SaveChangesAsync();
 
-//            SignOutResponse signOutResponse = new SignOutResponse()
+//            LogoutResponse signOutResponse = new LogoutResponse()
 //            {
 //                AccessToken = recentSession.session_sessiontoken,
 //                RefreshToken = recentSession.session_refreshtoken,
@@ -1103,7 +1124,7 @@ namespace MM_API.Services
 //        registered     	boolean	
 //         */
 ////[RequireHttps]
-//public async Task<ISignInResponse> SignInAsync(SignInPayload loginPayload)
+//public async Task<ILoginResponse> LoginAsync(LoginPayload loginPayload)
 //{
 //    try
 //    {
@@ -1115,7 +1136,7 @@ namespace MM_API.Services
 //            if (response.IsSuccessStatusCode)
 //            {
 //                string responseBody = await response.Content.ReadAsStringAsync();
-//                SignInResponse deserialisedResponse = JsonConvert.DeserializeObject<SignInResponse>(responseBody);
+//                LoginResponse deserialisedResponse = JsonConvert.DeserializeObject<LoginResponse>(responseBody);
 
 //                t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == deserialisedResponse.LocalId);  //fk_user_id == user.user_id
 //                var session = _dbContext.t_session.FirstOrDefault(s => s.user == user);
@@ -1155,9 +1176,9 @@ namespace MM_API.Services
 
 
 ////[RequireHttps]
-//public async Task<ISignOutResponse> SignOutAsync(SignOutPayload logoutPayload)
+//public async Task<ILogoutResponse> LogoutAsync(LogoutPayload logoutPayload)
 //{
-//    //var deserialisedLogoutPayload = JsonConvert.DeserializeObject<SignOutPayload>(logoutPayload);
+//    //var deserialisedLogoutPayload = JsonConvert.DeserializeObject<LogoutPayload>(logoutPayload);
 //    await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(JsonConvert.SerializeObject(logoutPayload.LocalId));
 
 //    var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == logoutPayload.LocalId);
@@ -1258,8 +1279,8 @@ namespace MM_API.Services
  *     //public interface IAuthenticationService
     //{
     //    public Task<RegistrationPayload> RegisterAsync(RegistrationPayload registrationPayload);
-    //    public Task<SignInPayload> SignInAsync(SignInPayload loginPayload);
-    //    public Task<SignOutPayload> SignOutAsync(SignOutPayload logoutPayload);
+    //    public Task<LoginPayload> LoginAsync(LoginPayload loginPayload);
+    //    public Task<LogoutPayload> LogoutAsync(LogoutPayload logoutPayload);
     //    public Task<RefreshTokenPayload> RefreshTokenAsync(RefreshTokenPayload refreshTokenPayload);
     //}
 
@@ -1354,9 +1375,9 @@ namespace MM_API.Services
     //registered     	boolean	
     //     */
 //    //[RequireHttps]
-//    public async Task<string> SignInAsync(SignInPayload loginPayload)
+//    public async Task<string> LoginAsync(LoginPayload loginPayload)
 //    {
-//        SignInResponse userRecord = null;
+//        LoginResponse userRecord = null;
 //        try
 //        {
 //            string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signInWithPassword{FB_URL_APIKEY}";
@@ -1367,7 +1388,7 @@ namespace MM_API.Services
 //                if (response.IsSuccessStatusCode)
 //                {
 //                    string responseBody = await response.Content.ReadAsStringAsync();
-//                    userRecord = JsonConvert.DeserializeObject<SignInResponse>(responseBody);
+//                    userRecord = JsonConvert.DeserializeObject<LoginResponse>(responseBody);
 //                    var handler = new JwtSecurityTokenHandler();
 //                    //var jsonToken = handler.ReadToken(signInResponse.AccessToken) as JwtSecurityToken;
 //                    //if (jsonToken == null)
@@ -1406,9 +1427,9 @@ namespace MM_API.Services
 
 
 //    //[RequireHttps]
-//    public async Task<bool> SignOutAsync(SignOutPayload logoutPayload)
+//    public async Task<bool> LogoutAsync(LogoutPayload logoutPayload)
 //    {
-//        //var deserialisedLogoutPayload = JsonConvert.DeserializeObject<SignOutPayload>(logoutPayload);
+//        //var deserialisedLogoutPayload = JsonConvert.DeserializeObject<LogoutPayload>(logoutPayload);
 //        await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(JsonConvert.SerializeObject(logoutPayload.LocalId));
 
 //        var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == logoutPayload.LocalId);
@@ -1544,9 +1565,9 @@ namespace MM_API.Services
 //        }
 //    }
 
-//    public async Task<SignInResponse> SignInAsync(SignInPayload payload)
+//    public async Task<LoginResponse> LoginAsync(LoginPayload payload)
 //    {
-//        SignInResponse signInResponse = null;
+//        LoginResponse signInResponse = null;
 //        try
 //        {
 //            string fb_uri = $"{FB_URL}{FB_URL_AUTH}:signInWithPassword{FB_URL_APIKEY}";
@@ -1557,7 +1578,7 @@ namespace MM_API.Services
 //                if (response.IsSuccessStatusCode)
 //                {
 //                    string responseBody = await response.Content.ReadAsStringAsync();
-//                    signInResponse = JsonConvert.DeserializeObject<SignInResponse>(responseBody);
+//                    signInResponse = JsonConvert.DeserializeObject<LoginResponse>(responseBody);
 //                    var handler = new JwtSecurityTokenHandler();
 //                    var jsonToken = handler.ReadToken(signInResponse.AccessToken) as JwtSecurityToken;
 //                    if (jsonToken == null)
@@ -1593,7 +1614,7 @@ namespace MM_API.Services
 //        return signInResponse;
 //    }
 
-//    public async Task<bool> SignOutAsync(SignOutPayload payload)
+//    public async Task<bool> LogoutAsync(LogoutPayload payload)
 //    {
 //        var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == payload.LocalId);
 //        var session = _dbContext.t_session.Last(s => s.fk_user_id == t_user.user_id);
@@ -1721,7 +1742,7 @@ namespace MM_API.Services
 
 
 //[RequireHttps]
-/*public async Task<bool> SignInAsync(AuthenticationModel authModel)
+/*public async Task<bool> LoginAsync(AuthenticationModel authModel)
 {
     try
     {
@@ -1800,7 +1821,7 @@ namespace MM_API.Services
 //    }
 
 //    [RequireHttps]
-//    public async Task<bool> SignInAsync(AuthenticationModel authModel)
+//    public async Task<bool> LoginAsync(AuthenticationModel authModel)
 //    {
 //        try
 //        {
@@ -1833,7 +1854,7 @@ namespace MM_API.Services
 //    }
 
 //    [RequireHttps]
-//    public async Task<bool> SignOutAsync(AuthenticationModel authModel)
+//    public async Task<bool> LogoutAsync(AuthenticationModel authModel)
 //    {
 //        //GET POSTGRES USER_ID FROM CLIENT PROVIDED FIREBASE TOKEN
 //        var decodedToken = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(authModel.AccessToken);

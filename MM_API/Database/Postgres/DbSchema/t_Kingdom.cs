@@ -10,7 +10,6 @@ namespace MM_API.Database.Postgres.DbSchema
     {
         [Key]
         public int kingdom_id { get; set; }
-        [AllowNull]
         public string kingdom_name { get; set; }
 
         public int fk_user_id { get; set; }
@@ -18,8 +17,8 @@ namespace MM_API.Database.Postgres.DbSchema
         [ForeignKey("fk_user_id")]
         public t_User User { get; set; }
 
-        //[Column(TypeName = "jsonb")]
-        //public Map kingdom_map { get; set; }
+        [Column(TypeName = "jsonb")]
+        public string kingdom_map { get; set; }
     }
 }
 //[Key]

@@ -2,6 +2,9 @@
 using System.Numerics;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using SharedGameFramework.Game.Armoury;
+using SharedGameFramework.Game.Character;
+using SharedGameFramework.Game.Kingdom.Map;
 
 #nullable disable
 
@@ -101,7 +104,8 @@ namespace MM_API.Migrations
                 {
                     armoury_id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    fk_user_id = table.Column<int>(type: "integer", nullable: false)
+                    fk_user_id = table.Column<int>(type: "integer", nullable: false),
+                    armoury_inventory = table.Column<ArmouryInventory>(type: "jsonb", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -121,7 +125,9 @@ namespace MM_API.Migrations
                     character_id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     character_name = table.Column<string>(type: "text", nullable: false),
-                    fk_user_id = table.Column<int>(type: "integer", nullable: false)
+                    fk_user_id = table.Column<int>(type: "integer", nullable: false),
+                    character_sheet = table.Column<CharacterSheet>(type: "jsonb", nullable: false),
+                    character_inventory = table.Column<CharacterInventory>(type: "jsonb", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -141,7 +147,8 @@ namespace MM_API.Migrations
                     kingdom_id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     kingdom_name = table.Column<string>(type: "text", nullable: false),
-                    fk_user_id = table.Column<int>(type: "integer", nullable: false)
+                    fk_user_id = table.Column<int>(type: "integer", nullable: false),
+                    kingdom_map = table.Column<Map>(type: "jsonb", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -319,7 +326,7 @@ namespace MM_API.Migrations
             migrationBuilder.InsertData(
                 table: "AspNetUsers",
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "CustomUserId", "Email", "EmailConfirmed", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "c36e0cca-35c1-4260-9898-2600e3689365", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEJK5xC4pk/ZwoFF00DdilzI61U1qWFR3Efma2mWc6E2FUoXKUTTunMGKYLQaL2OpqA==", null, false, "b20850c3-c903-40eb-a286-8c8b17cd2829", false, "yifahnadmin" });
+                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "553127dd-4ad0-4c72-8c8a-1d74fc58dfab", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAECeDPp2a/aVt0amDsfT7E0dNN5PHRNemEBIECS1C1GdUKyjJXVwr4/t0J2KpvfFwPg==", null, false, "62fbde28-468e-494f-a7a5-4d6098608811", false, "yifahnadmin" });
 
             migrationBuilder.InsertData(
                 table: "AspNetUserRoles",

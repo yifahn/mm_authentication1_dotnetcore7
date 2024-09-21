@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MM_API.Services;
-using SharedNetworkFramework.Authentication.Firebase.Register;
-using SharedNetworkFramework.Authentication.Firebase.SignIn;
-using SharedNetworkFramework.Authentication.Firebase.RefreshToken;
-using SharedNetworkFramework.Authentication.Firebase.SignOut;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using MM_API.Database.Postgres;
+using SharedNetworkFramework.Authentication.RefreshToken;
+using SharedNetworkFramework.Authentication.Register;
+using SharedNetworkFramework.Authentication.Login;
+using SharedNetworkFramework.Authentication.Logout;
 
 namespace MM_API.Controllers
 {
@@ -56,7 +56,7 @@ namespace MM_API.Controllers
         //localhost:5223/authentication/login
         //[RequireHttps]
         [HttpPost("login")]
-        public async Task<ActionResult<ISignInResponse>> LoginAsync([FromBody] SignInPayload payload)
+        public async Task<ActionResult<ILoginResponse>> LoginAsync([FromBody] LoginPayload payload)
         {
             if (!ModelState.IsValid)
             {
@@ -64,8 +64,8 @@ namespace MM_API.Controllers
             }
             try
             {
-                var result = await _authenticationService.SignInAsync(payload);
-                if (result is ISignInResponse)
+                var result = await _authenticationService.LoginAsync(payload);
+                if (result is ILoginResponse)
                 {
                     return Ok(result);
                 }
@@ -86,7 +86,7 @@ namespace MM_API.Controllers
         //[RequireHttps]
         [Authorize(Policy = "UserPolicy")]
         [HttpPost("logout")]
-        public async Task<ActionResult<ISignOutResponse>> LogoutAsync([FromBody] SignOutPayload payload)
+        public async Task<ActionResult<ILogoutResponse>> LogoutAsync([FromBody] LogoutPayload payload)
         {
             if (!ModelState.IsValid)
             {
@@ -94,8 +94,8 @@ namespace MM_API.Controllers
             }
             try
             {
-                var result = await _authenticationService.SignOutAsync(payload);
-                if (result is ISignOutResponse)
+                var result = await _authenticationService.LogoutAsync(payload);
+                if (result is ILogoutResponse)
                 {
                     return Ok(result);
                 }
@@ -148,6 +148,7 @@ namespace MM_API.Controllers
         }
     }
 }
+#region Legacy Code
 //namespace MM_API.Controllers
 //{
 //    [ApiController]
@@ -191,7 +192,7 @@ namespace MM_API.Controllers
 
 //        //localhost:5223/authentication/login
 //        [HttpPost("login")]
-//        public async Task<ActionResult<ISignInResponse>> SignInAsync([FromBody] SignInPayload payload)
+//        public async Task<ActionResult<ILoginResponse>> LoginAsync([FromBody] LoginPayload payload)
 //        {
 //            if (!ModelState.IsValid)
 //            {
@@ -199,8 +200,8 @@ namespace MM_API.Controllers
 //            }
 //            try
 //            {
-//                var result = await _authenticationService.SignInAsync(payload);
-//                if (result is ISignInResponse)
+//                var result = await _authenticationService.LoginAsync(payload);
+//                if (result is ILoginResponse)
 //                {
 //                    return Ok(result);
 //                }
@@ -219,7 +220,7 @@ namespace MM_API.Controllers
 
 //        //localhost:5223/authentication/logout
 //        [HttpPost("logout")]
-//        public async Task<ActionResult<ISignOutResponse>> SignOutAsync([FromBody] SignOutPayload payload)
+//        public async Task<ActionResult<ILogoutResponse>> LogoutAsync([FromBody] LogoutPayload payload)
 //        {
 //            if (!ModelState.IsValid)
 //            {
@@ -227,8 +228,8 @@ namespace MM_API.Controllers
 //            }
 //            try
 //            {
-//                var result = await _authenticationService.SignOutAsync(payload);
-//                if (result is ISignOutResponse)
+//                var result = await _authenticationService.LogoutAsync(payload);
+//                if (result is ILogoutResponse)
 //                {
 //                    return Ok(result);
 //                }
@@ -279,3 +280,4 @@ namespace MM_API.Controllers
 //        }
 //    }
 //}
+#endregion
