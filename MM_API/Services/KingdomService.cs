@@ -26,6 +26,8 @@ using SharedGameFramework.Game.Kingdom.Map.Node.Blockade;
 using SharedGameFramework.Game.Kingdom.Map.Node.MTower;
 using SharedGameFramework.Game.Kingdom.Map.Node.Wonder;
 
+using Npgsql;
+
 namespace MM_API.Services
 {
     public interface IKingdomService
@@ -159,9 +161,126 @@ namespace MM_API.Services
 
             
         }
+
+        /*
+ * "
+ * {""Nodes"": [
+ * {""NodeCost"": 0, ""NodeType"": 0, ""NodeIndex"": 0, ""NodeLevel"": 0},
+ * {""NodeCost"": 0, ""NodeType"": 0, ""NodeIndex"": 1, ""NodeLevel"": 0},
+ * {""NodeCost"": 0, ""NodeType"": 0, ""NodeIndex"": 2, ""NodeLevel"": 0},
+ * {""NodeCost"": 0, ""NodeType"": 0, ""NodeIndex"": 3, ""NodeLevel"": 0}, 
+ * ...
+ */
+        //NodeType int representations GL==0, TC==1, H==2, L==3, F==4, R==5, B==6, MT==7, W==8
         public async Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload mapUpdatePayload)
         {
-            return null;
+            try
+            {
+
+            
+            var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
+            var user = await _userManager.FindByIdAsync(userId);
+
+
+
+            // Create the JSON representation of the new node
+            int nodeCost = 0;
+            int nodeLevel = 0;
+            switch (mapUpdatePayload.NodeType)
+            {
+                case 0:
+                    Grassland grassland = new Grassland();
+                    nodeCost = grassland.NodeCost;
+                    nodeLevel = grassland.NodeLevel;
+                    break;
+                case 1:
+                    TownCentre townCentre = new TownCentre();
+                    nodeCost = townCentre.NodeCost;
+                    nodeLevel = townCentre.NodeLevel;
+                    break;
+                case 2:
+                    House house = new House();
+                    nodeCost = house.NodeCost;
+                    nodeLevel = house.NodeLevel;
+                    break;
+                case 3:
+                    Library library = new Library();
+                    nodeCost = library.NodeCost;
+                    nodeLevel = library.NodeLevel;
+                    break;
+                case 4:
+                    Factory factory = new Factory();
+                    nodeCost = factory.NodeCost;
+                    nodeLevel = factory.NodeLevel;
+                    break;
+                case 5:
+                    Road road = new Road();
+                    nodeCost = road.NodeCost;
+                    nodeLevel = road.NodeLevel;
+                    break;
+                case 6:
+                    Blockade blockade = new Blockade();
+                    nodeCost = blockade.NodeCost;
+                    nodeLevel = blockade.NodeLevel;
+                    break;
+                case 7:
+                    MTower mTower = new MTower();
+                    nodeCost = mTower.NodeCost;
+                    nodeLevel = mTower.NodeLevel;
+                    break;
+                case 8:
+                    Wonder wonder = new Wonder();
+                    nodeCost = wonder.NodeCost;
+                    nodeLevel = wonder.NodeLevel;
+                    break;
+            }
+            var nodeJson = $"{{ \"NodeCost\": {nodeCost}, \"NodeType\": {mapUpdatePayload.NodeType}, \"NodeIndex\": {mapUpdatePayload.NodeIndex}, \"NodeLevel\": {nodeLevel}}}";
+
+
+
+            // Update the node at the specified index in the kingdom_map
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "UPDATE t_kingdom SET kingdom_map = jsonb_set(kingdom_map, ARRAY['Nodes', @NodeIndex::text], @NodeJson::jsonb) WHERE fk_user_id = @UserId",
+                new NpgsqlParameter("@NodeIndex", mapUpdatePayload.NodeIndex),
+                new NpgsqlParameter("@NodeJson", nodeJson),
+                new NpgsqlParameter("@UserId", user.CustomUserId)
+            );
+
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+            }
+
+            //var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
+            //var user = await _userManager.FindByIdAsync(userId);
+
+            //var nodeJson = "{ \"NodeType\": 2, \"NodeCost\": 50, \"NodeLevel\": 1 }";
+
+            //await _dbContext.Database.ExecuteSqlRawAsync("UPDATE Kingdoms SET kingdom_map = jsonb_set(kingdom_map, ARRAY['nodes', @NodeIndex::text], @NodeJson::jsonb) WHERE fk_user_id = @UserId",
+            //    new NpgsqlParameter("@NodeIndex", mapUpdatePayload.NodeIndex),
+            //    new NpgsqlParameter("@NodeJson", nodeJson),
+            //    new NpgsqlParameter("@UserId", user.CustomUserId)
+            //    );
+
+
+            //var nodeJson = "{ \"NodeType\": 2, \"NodeCost\": 50, \"NodeLevel\": 1 }"; // Example node data
+            //var nodeIndex = 100; // Node index to update
+            //var userId = 123; // User's ID
+
+            //var nodeParam = new NpgsqlParameter("@NodeJson", nodeJson);
+            //var userIdParam = new NpgsqlParameter("@UserId", userId);
+
+            //await _dbContext.Database.ExecuteSqlRawAsync(
+            //    "UPDATE Kingdoms SET kingdom_map = jsonb_set(kingdom_map, ARRAY['nodes', @NodeIndex::text], @NodeJson::jsonb) WHERE fk_user_id = @UserId",
+            //    new NpgsqlParameter("@NodeIndex", nodeIndex),
+            //    nodeParam,
+            //    userIdParam
+            //);
+            return new MapUpdateResponse()
+            {
+                Success = true
+            };
         }
 
     }

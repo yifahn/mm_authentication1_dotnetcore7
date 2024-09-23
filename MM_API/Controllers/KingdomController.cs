@@ -48,7 +48,7 @@ namespace MM_API.Controllers
         //}
         //localhost:5223/kingdom/loadmap
         [Authorize(Policy = "UserPolicy")]
-        [HttpPost("loadmap")]
+        [HttpGet("loadmap")]
         public async Task<ActionResult<IMapLoadResponse>> LoadMap()//[FromBody] MapLoadPayload payload
         {
             if (!ModelState.IsValid)
@@ -75,7 +75,7 @@ namespace MM_API.Controllers
         }
         //localhost:5223/kingdom/updatemap
         [Authorize(Policy = "UserPolicy")]
-        [HttpPost("updatemap")]
+        [HttpPatch("updatemap")]
         public async Task<ActionResult<IMapUpdateResponse>> UpdateMap([FromBody] MapUpdatePayload payload)
         {
             if (!ModelState.IsValid)
