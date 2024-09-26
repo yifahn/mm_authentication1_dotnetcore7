@@ -17,7 +17,7 @@ namespace MM_API.Controllers
             _kingdomService = kingdomService;
         }
         [Authorize(Policy = "UserPolicy")]
-        [HttpGet("loadmap")]
+        [HttpGet("loadkingdom")]
         public async Task<ActionResult<IKingdomLoadResponse>> LoadKingdom()//[FromBody] MapLoadPayload payload
         {
             if (!ModelState.IsValid)
