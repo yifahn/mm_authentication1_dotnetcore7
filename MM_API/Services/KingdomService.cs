@@ -30,12 +30,14 @@ using Npgsql;
 
 using System.Reflection.Metadata.Ecma335;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
+using SharedNetworkFramework.Game.Kingdom;
 
 namespace MM_API.Services
 {
     public interface IKingdomService
     {
-        public Task<IMapLoadResponse> LoadMap();
+        public Task<IKingdomLoadResponse> LoadKingdom();
+        public Task<IMapLoadResponse> LoadMap();//deprecate this for loadkingdom - on load, load all components - update individually
         public Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload payload);
 
 
@@ -53,7 +55,20 @@ namespace MM_API.Services
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
         }
-        public async Task<IMapLoadResponse> LoadMap()
+        public async Task<IKingdomLoadResponse> LoadKingdom()
+        {
+            var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
+            var user = await _userManager.FindByIdAsync(userId);
+
+            t_Kingdom kingdom = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
+            var loadKingdomResponse = new KingdomLoadResponse()
+            {
+                KingdomName = kingdom.kingdom_name,
+                KingdomMap = kingdom.kingdom_map
+            };
+            return loadKingdomResponse;
+        }
+        public async Task<IMapLoadResponse> LoadMap() 
         {
             var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
             var user = await _userManager.FindByIdAsync(userId);
@@ -61,7 +76,7 @@ namespace MM_API.Services
             t_Kingdom map = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
             var loadMapResponse = new MapLoadResponse()
             {
-                Map = map.kingdom_map
+                KingdomMap = map.kingdom_map
             };
             return loadMapResponse;
         }
@@ -88,7 +103,6 @@ namespace MM_API.Services
                 }
                 return new MapUpdateResponse()
                 {
-                    Success = true
                 };
             }
             catch (Exception ex)
@@ -97,7 +111,6 @@ namespace MM_API.Services
             }
             return new MapUpdateResponse()
             {
-                Success = false
             };
         }
         public static (string, NpgsqlParameter[]) GenerateMapUpdateSQL(int nodeIndex, int nodeType, int userId)
@@ -152,7 +165,20 @@ namespace MM_API.Services
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
         }
-        public async Task<IMapLoadResponse> LoadMap()
+        public async Task<IKingdomLoadResponse> LoadKingdom()
+        {
+            var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
+            var user = await _userManager.FindByIdAsync(userId);
+
+            t_Kingdom kingdom = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
+            var loadKingdomResponse = new KingdomLoadResponse()
+            {
+                KingdomName = kingdom.kingdom_name,
+                KingdomMap = kingdom.kingdom_map
+            };
+            return loadKingdomResponse;
+        }
+            public async Task<IMapLoadResponse> LoadMap() //deprecate this for loadkingdom - on load, load all components - update individually
         {
             var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
             var user = await _userManager.FindByIdAsync(userId);
@@ -160,7 +186,7 @@ namespace MM_API.Services
             t_Kingdom map = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
             var loadMapResponse = new MapLoadResponse()
             {
-                Map = map.kingdom_map
+                KingdomMap = map.kingdom_map
             };
             return loadMapResponse;
         }
@@ -198,7 +224,6 @@ namespace MM_API.Services
                 }
                 return new MapUpdateResponse()
                 {
-                    Success = true
                 };
             }
             catch (Exception ex)
@@ -207,7 +232,6 @@ namespace MM_API.Services
             }
             return new MapUpdateResponse()
             {
-                Success = false
             };
         }
         public static (string, NpgsqlParameter[]) GenerateMapUpdateSQL(int nodeIndex, int nodeType, int userId)

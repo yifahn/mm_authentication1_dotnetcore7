@@ -494,8 +494,8 @@ namespace MM_API.Services
                         var treasury = new t_Treasury()
                         {
                             treasury_coin = 0,
-                            treasury_gainrate = 0,
-                            treasury_multiplier = 0,
+                            treasury_gainrate = 5,
+                            treasury_multiplier = 1,
 
                             fk_user_id = user.user_id
                         };

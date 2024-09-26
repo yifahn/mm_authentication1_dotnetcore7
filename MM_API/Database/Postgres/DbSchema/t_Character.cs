@@ -22,7 +22,10 @@ namespace MM_API.Database.Postgres.DbSchema
         public string character_sheet { get; set; }
 
         [Column(TypeName = "jsonb")]
-        public string character_inventory { get; set; } //= new CharacterInventory();
+        public string character_inventory { get; set; }
+
+        [Column(TypeName = "jsonb")]
+        public string character_state { get; set; }
     }
 }
 //[Key]
