@@ -14,6 +14,8 @@ using MM_API.Database.Postgres.DbSchema;
 using MM_API.Database.Postgres;
 using System.Security.Claims;
 
+using Npgsql.EntityFrameworkCore.PostgreSQL;
+
 namespace MM_API
 {
     public class Program
@@ -29,7 +31,7 @@ namespace MM_API
                 options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
             System.Diagnostics.Debug.WriteLine($"Connection String: {builder.Configuration.GetConnectionString("Db")}");
 
-
+           
             #region Authentication & Authorization
             builder.Services.AddAuthorization(options =>
             {

@@ -55,7 +55,7 @@ namespace MM_API.Controllers
             try
             {
                 var result = await _characterService.UpdateCharacterInventory(inventoryUpdatePayload);
-                if (result is ISheetUpdateResponse)
+                if (result is IInventoryUpdateResponse)
                 {
                     return Ok(result);
                 }

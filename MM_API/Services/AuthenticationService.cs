@@ -16,13 +16,45 @@ using System.IdentityModel.Tokens.Jwt;
 
 using System.Security.Claims;
 using System.Security.Cryptography;
+
 using SharedNetworkFramework.Authentication.RefreshToken;
 using SharedNetworkFramework.Authentication.Register;
 using SharedNetworkFramework.Authentication.Login;
 using SharedNetworkFramework.Authentication.Logout;
+
 using SharedGameFramework.Game.Kingdom.Map.Node;
 using SharedGameFramework.Game.Kingdom.Map;
+
 using SharedGameFramework.Game.Character;
+using SharedGameFramework.Game.Character.State;
+
+using SharedGameFramework.Game.Character.Attribute;
+using SharedGameFramework.Game.Character.Attribute.CharacterLevel;
+using SharedGameFramework.Game.Character.Attribute.Constitution;
+using SharedGameFramework.Game.Character.Attribute.Defence;
+using SharedGameFramework.Game.Character.Attribute.Luck;
+using SharedGameFramework.Game.Character.Attribute.Stamina;
+using SharedGameFramework.Game.Character.Attribute.Strength;
+
+using SharedGameFramework.Game.Armoury.Equipment;
+using SharedGameFramework.Game.Armoury.Equipment.Armour;
+using SharedGameFramework.Game.Armoury.Equipment.Armour.Arms;
+using SharedGameFramework.Game.Armoury.Equipment.Armour.Hands;
+using SharedGameFramework.Game.Armoury.Equipment.Armour.Head;
+using SharedGameFramework.Game.Armoury.Equipment.Armour.Legs;
+using SharedGameFramework.Game.Armoury.Equipment.Armour.Feet;
+using SharedGameFramework.Game.Armoury.Equipment.Armour.Torso;
+using SharedGameFramework.Game.Armoury.Equipment.Weapon;
+using SharedGameFramework.Game.Armoury.Equipment.Weapon.Axe;
+using SharedGameFramework.Game.Armoury.Equipment.Weapon.Spear;
+using SharedGameFramework.Game.Armoury.Equipment.Weapon.Staff;
+using SharedGameFramework.Game.Armoury.Equipment.Weapon.Sword;
+using SharedGameFramework.Game.Armoury.Equipment.Jewellery;
+using SharedGameFramework.Game.Armoury.Equipment.Jewellery.Amulet;
+using SharedGameFramework.Game.Armoury.Equipment.Jewellery.Ring;
+
+using System.Xml.Linq;
+using SharedGameFramework.Game.Armoury;
 
 namespace MM_API.Services
 {
@@ -41,7 +73,6 @@ namespace MM_API.Services
     #region Production
     public class AuthenticationService : IAuthenticationService
     {
-
         private readonly MM_DbContext _dbContext;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
@@ -121,7 +152,9 @@ namespace MM_API.Services
 
                         var armoury = new t_Armoury()
                         {
-                            fk_user_id = user.user_id
+                            fk_user_id = user.user_id,
+
+                            armoury_inventory = ""
                         };
 
                         await _dbContext.AddAsync(armoury);
@@ -457,37 +490,76 @@ namespace MM_API.Services
                         var grasslandFilePath = Path.Combine(_env.ContentRootPath, "assets", "grasslandmap1980.json");
                         string grasslandMapJson = await File.ReadAllTextAsync(grasslandFilePath);
 
-                       // string serialisedGrasslandMap = JsonConvert.SerializeObject(grasslandMapJson);
-                        //var settings = new JsonSerializerSettings
-                        //{
-                        //    Converters = new List<JsonConverter> { new NodeConverter() }
-                        //};
-                        //dynamic map = JsonConvert.DeserializeObject<Map>(grasslandMapJson, settings);
-
                         var kingdom = new t_Kingdom()
                         {
                             kingdom_name = "null",
                             fk_user_id = user.user_id,
                             kingdom_map = grasslandMapJson,
-                            
+
                         };
                         await _dbContext.AddAsync(kingdom);
+
+                        SharedGameFramework.Game.Character.Attribute.Attribute[] attributes =
+                        [
+                           new CharacterLevel { Level = 1 },
+                           new Constitution { Level = 50 },
+                           new Defence { Level = 1 },
+                           new Luck{ Level = 1 },
+                           new Stamina{ Level = 1 },
+                           new Strength{ Level = 1 }
+                        ];
+                        CharacterSheet characterSheet = new CharacterSheet() { Attributes = attributes };
+
+                        State state = new State()
+                        {
+                            character_cooldown = 0,
+                            character_died = DateTimeOffset.MinValue,
+                            character_isactive = true,
+                            character_isalive = true,
+                            character_iscooldown = false
+                        };
+                        CharacterState characterState = new CharacterState() { State = state };
+
+                        Equipment[] characterEquipment =
+                        [
+                            new Ring {
+                                JewelleryTier = 1,
+                                Name = "Wedding Ring",
+                                ConstitutionBoon = 5,
+                                LuckBoon = 1,
+                                StaminaBoon = 1
+                            },
+                            new Torso {
+                                Name = "Sheep's-wool Woven Shirt",
+                                ArmourTier = 1,
+                                DefenceRating = 2
+                            },
+                            new Legs {
+                                Name = "Leather Chaps",
+                                ArmourTier = 1,
+                                DefenceRating = 5
+                            },
+                            new Feet {
+                                Name = "Leather Sandals",
+                                ArmourTier = 1,
+                                DefenceRating = 2
+                            }
+                        ];
+                        CharacterInventory characterInventory = new CharacterInventory() { Equipment = characterEquipment };
 
                         var character = new t_Character()
                         {
                             character_name = "null",
                             fk_user_id = user.user_id,
-                            character_inventory = JsonConvert.SerializeObject(""),
-                            character_sheet = JsonConvert.SerializeObject("")
-
+                            character_inventory = JsonConvert.SerializeObject(characterInventory), //serialising empty string? be careful when adding into this
+                            character_sheet = JsonConvert.SerializeObject(characterSheet),
+                            character_state = JsonConvert.SerializeObject(characterState),
                         };
                         await _dbContext.AddAsync(character);
 
                         var soupkitchen = new t_Soupkitchen()
                         {
-
                             fk_user_id = user.user_id,
-                            
                         };
                         await _dbContext.AddAsync(soupkitchen);
 
@@ -501,10 +573,20 @@ namespace MM_API.Services
                         };
                         await _dbContext.AddAsync(treasury);
 
+                        Equipment[] armouryEquipment =
+                        [
+                            new Sword {
+                                Name = "Iron Sword",
+                                DamageRating = 10,
+                                Unique = false
+                            },
+                        ];
+                        ArmouryInventory armouryInventory = new ArmouryInventory() { Equipment = armouryEquipment };
+
                         var armoury = new t_Armoury()
                         {
                             fk_user_id = user.user_id,
-                            armoury_inventory = JsonConvert.SerializeObject(""),
+                            armoury_inventory = JsonConvert.SerializeObject(armouryInventory),
                         };
 
                         await _dbContext.AddAsync(armoury);
@@ -533,7 +615,7 @@ namespace MM_API.Services
                     }
                 }
             }
-            catch (Exception ex)     
+            catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
             }
@@ -883,7 +965,7 @@ namespace MM_API.Services
 //            {
 //                LoginResponse signInResponse = JsonConvert.DeserializeObject<LoginResponse>(responseBody);
 
-//                t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == signInResponse.LocalId);  //fk_user_id == user.user_id
+//                t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == signInResponse.Id);  //fk_user_id == user.user_id
 //                System.Diagnostics.Debug.WriteLine($"{user.user_id} - {user.user_fb_uuid} - {user.user_name}");
 //                t_Session session = new t_Session()
 //                {
@@ -918,7 +1000,7 @@ namespace MM_API.Services
 //{
 //    try
 //    {
-//        t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == logoutPayload.LocalId);
+//        t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == logoutPayload.Id);
 //        t_Session recentSession = await _dbContext.t_session
 //            .Where(s => s.fk_user_id == user.user_id)
 //            .OrderByDescending(s => s.session_loggedin)
@@ -936,7 +1018,7 @@ namespace MM_API.Services
 //            {
 //                AccessToken = recentSession.session_sessiontoken,
 //                RefreshToken = recentSession.session_refreshtoken,
-//                LocalId = user.user_fb_uuid
+//                Id = user.user_fb_uuid
 //            };
 //            return signOutResponse;
 //        }
@@ -1036,7 +1118,7 @@ namespace MM_API.Services
 //                        t_User user = new t_User
 //                        {
 //                            user_name = deserialisedResponse.Email.Substring(0, deserialisedResponse.Email.IndexOf('@')),
-//                            user_fb_uuid = deserialisedResponse.LocalId
+//                            user_fb_uuid = deserialisedResponse.Id
 //                        };
 //                        t_Session session = new t_Session()
 //                        {
@@ -1138,7 +1220,7 @@ namespace MM_API.Services
 //                string responseBody = await response.Content.ReadAsStringAsync();
 //                LoginResponse deserialisedResponse = JsonConvert.DeserializeObject<LoginResponse>(responseBody);
 
-//                t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == deserialisedResponse.LocalId);  //fk_user_id == user.user_id
+//                t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == deserialisedResponse.Id);  //fk_user_id == user.user_id
 //                var session = _dbContext.t_session.FirstOrDefault(s => s.user == user);
 //                session.session_authtoken = deserialisedResponse.AccessToken;
 //                session.session_refreshtoken = deserialisedResponse.RefreshToken;
@@ -1179,9 +1261,9 @@ namespace MM_API.Services
 //public async Task<ILogoutResponse> LogoutAsync(LogoutPayload logoutPayload)
 //{
 //    //var deserialisedLogoutPayload = JsonConvert.DeserializeObject<LogoutPayload>(logoutPayload);
-//    await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(JsonConvert.SerializeObject(logoutPayload.LocalId));
+//    await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(JsonConvert.SerializeObject(logoutPayload.Id));
 
-//    var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == logoutPayload.LocalId);
+//    var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == logoutPayload.Id);
 //    var session = _dbContext.t_session.FirstOrDefault(s => s.fk_user_id == t_user.user_id);// change .FirstOrDefault on this and login endpoints to .Last in t_session find as user will eventually own many sesssions, instead of replacing the same session entry each time
 //    try
 //    {
@@ -1315,7 +1397,7 @@ namespace MM_API.Services
     //                    t_User user = new t_User
     //                    {
     //                        user_name = userRecord.Email.Substring(0, userRecord.Email.IndexOf('@')),
-    //                        user_fb_uuid = userRecord.LocalId
+    //                        user_fb_uuid = userRecord.Id
     //                    };
     //                    t_Session session = new t_Session()
     //                    {
@@ -1395,7 +1477,7 @@ namespace MM_API.Services
 //                    //{
 //                    //    throw new InvalidOperationException("Invalid JWT token");
 //                    //}
-//                    t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == userRecord.LocalId);
+//                    t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == userRecord.Id);
 //                    var session = _dbContext.t_session.FirstOrDefault(s => s.user == user);//fk_user_id == user.user_id
 //                    session.session_authtoken = userRecord.AccessToken;
 //                    session.session_refreshtoken = userRecord.RefreshToken;
@@ -1430,9 +1512,9 @@ namespace MM_API.Services
 //    public async Task<bool> LogoutAsync(LogoutPayload logoutPayload)
 //    {
 //        //var deserialisedLogoutPayload = JsonConvert.DeserializeObject<LogoutPayload>(logoutPayload);
-//        await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(JsonConvert.SerializeObject(logoutPayload.LocalId));
+//        await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(JsonConvert.SerializeObject(logoutPayload.Id));
 
-//        var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == logoutPayload.LocalId);
+//        var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == logoutPayload.Id);
 //        var session = _dbContext.t_session.FirstOrDefault(s => s.fk_user_id == t_user.user_id);// change .FirstOrDefault on this and login endpoints to .Last in t_session find as user will eventually own many sesssions, instead of replacing the same session entry each time
 //        try
 //        {
@@ -1528,7 +1610,7 @@ namespace MM_API.Services
 //                    t_User user = new t_User
 //                    {
 //                        user_name = signInResponse.Email.Substring(0, payload.Email.IndexOf('@')),
-//                        user_fb_uuid = signInResponse.LocalId
+//                        user_fb_uuid = signInResponse.Id
 //                    };
 //                    t_Session session = new t_Session()
 //                    {
@@ -1585,7 +1667,7 @@ namespace MM_API.Services
 //                    {
 //                        throw new InvalidOperationException("Invalid JWT token");
 //                    }
-//                    t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == signInResponse.LocalId);
+//                    t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == signInResponse.Id);
 //                    var session = _dbContext.t_session.FirstOrDefault(s => s.user == user);//fk_user_id == user.user_id
 //                    session.session_authtoken = signInResponse.AccessToken;
 //                    session.session_refreshtoken = signInResponse.RefreshToken;
@@ -1616,7 +1698,7 @@ namespace MM_API.Services
 
 //    public async Task<bool> LogoutAsync(LogoutPayload payload)
 //    {
-//        var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == payload.LocalId);
+//        var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == payload.Id);
 //        var session = _dbContext.t_session.Last(s => s.fk_user_id == t_user.user_id);
 //        try
 //        {

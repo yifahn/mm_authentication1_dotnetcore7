@@ -7,16 +7,13 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using SharedGameFramework.Game.Armoury;
-using SharedGameFramework.Game.Character;
-using SharedGameFramework.Game.Kingdom.Map;
 
 #nullable disable
 
 namespace MM_API.Migrations
 {
     [DbContext(typeof(MM_DbContext))]
-    [Migration("20240921043505_Initial")]
+    [Migration("20241001125501_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -102,16 +99,16 @@ namespace MM_API.Migrations
                         {
                             Id = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "553127dd-4ad0-4c72-8c8a-1d74fc58dfab",
+                            ConcurrencyStamp = "3fa31784-a2d8-4d4d-80a7-ce63ff761f1d",
                             CustomUserId = -999,
                             Email = "yifahnadmin@gmail.com",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
                             NormalizedEmail = "YIFAHNADMIN@GMAIL.COM",
                             NormalizedUserName = "YIFAHNADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAECeDPp2a/aVt0amDsfT7E0dNN5PHRNemEBIECS1C1GdUKyjJXVwr4/t0J2KpvfFwPg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEArYBZ4q6BxtF6YJ6JR9OUKMaDP9MNgrOtJI3ok6StDajga5qMX8CmeNRLBQt979AQ==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "62fbde28-468e-494f-a7a5-4d6098608811",
+                            SecurityStamp = "fa539a64-e6a5-4404-8ab5-a6a5fbef4ee1",
                             TwoFactorEnabled = false,
                             UserName = "yifahnadmin"
                         });
@@ -125,7 +122,7 @@ namespace MM_API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("armoury_id"));
 
-                    b.Property<ArmouryInventory>("armoury_inventory")
+                    b.Property<string>("armoury_inventory")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
@@ -147,7 +144,7 @@ namespace MM_API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("character_id"));
 
-                    b.Property<CharacterInventory>("character_inventory")
+                    b.Property<string>("character_inventory")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
@@ -155,7 +152,11 @@ namespace MM_API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<CharacterSheet>("character_sheet")
+                    b.Property<string>("character_sheet")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("character_state")
                         .IsRequired()
                         .HasColumnType("jsonb");
 
@@ -180,7 +181,7 @@ namespace MM_API.Migrations
                     b.Property<int>("fk_user_id")
                         .HasColumnType("integer");
 
-                    b.Property<Map>("kingdom_map")
+                    b.Property<string>("kingdom_map")
                         .IsRequired()
                         .HasColumnType("jsonb");
 

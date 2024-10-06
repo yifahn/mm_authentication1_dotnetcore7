@@ -37,7 +37,7 @@ namespace MM_API.Services
     public interface IKingdomService
     {
         public Task<IKingdomLoadResponse> LoadKingdom();
-        public Task<IMapLoadResponse> LoadMap();//deprecate this for loadkingdom - on load, load all components - update individually
+      /*  public Task<IMapLoadResponse> LoadMap();*///deprecate this for loadkingdom - on load, load all components - update individually
         public Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload payload);
 
 
@@ -68,18 +68,18 @@ namespace MM_API.Services
             };
             return loadKingdomResponse;
         }
-        public async Task<IMapLoadResponse> LoadMap() 
-        {
-            var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
-            var user = await _userManager.FindByIdAsync(userId);
+        //public async Task<IMapLoadResponse> LoadMap() 
+        //{
+        //    var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
+        //    var user = await _userManager.FindByIdAsync(userId);
 
-            t_Kingdom map = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
-            var loadMapResponse = new MapLoadResponse()
-            {
-                KingdomMap = map.kingdom_map
-            };
-            return loadMapResponse;
-        }
+        //    t_Kingdom map = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
+        //    var loadMapResponse = new MapLoadResponse()
+        //    {
+        //        KingdomMap = map.kingdom_map
+        //    };
+        //    return loadMapResponse;
+        //}
         public async Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload mapUpdatePayload)
         {
             try
@@ -171,25 +171,24 @@ namespace MM_API.Services
             var user = await _userManager.FindByIdAsync(userId);
 
             t_Kingdom kingdom = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
-            var loadKingdomResponse = new KingdomLoadResponse()
+            return new KingdomLoadResponse()
             {
                 KingdomName = kingdom.kingdom_name,
                 KingdomMap = kingdom.kingdom_map
             };
-            return loadKingdomResponse;
         }
-            public async Task<IMapLoadResponse> LoadMap() //deprecate this for loadkingdom - on load, load all components - update individually
-        {
-            var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
-            var user = await _userManager.FindByIdAsync(userId);
+        //    public async Task<IMapLoadResponse> LoadMap() //deprecate this for loadkingdom - on load, load all components - update individually
+        //{
+        //    var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
+        //    var user = await _userManager.FindByIdAsync(userId);
 
-            t_Kingdom map = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
-            var loadMapResponse = new MapLoadResponse()
-            {
-                KingdomMap = map.kingdom_map
-            };
-            return loadMapResponse;
-        }
+        //    t_Kingdom map = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
+        //    var loadMapResponse = new MapLoadResponse()
+        //    {
+        //        KingdomMap = map.kingdom_map
+        //    };
+        //    return loadMapResponse;
+        //}
 
         /*
  * "
@@ -256,6 +255,7 @@ namespace MM_API.Services
             NpgsqlParameter[][] sqlParameterArray = new NpgsqlParameter[nodeTypeArray.Length][];
             for (int i = 0; i < nodeTypeArray.Length; i++)
             {
+           
                 sqlArray[i] = @"UPDATE t_kingdom SET kingdom_map = jsonb_set(kingdom_map, ARRAY['Nodes', @NodeIndex::text], jsonb_build_object('NodeCost', @NodeCost,'NodeType', @NodeType,'NodeIndex', @NodeIndex,'NodeLevel', @NodeLevel)::jsonb) WHERE fk_user_id = @UserId;";
                 sqlParameterArray[i] =
                 [

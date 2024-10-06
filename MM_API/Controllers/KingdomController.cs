@@ -42,33 +42,7 @@ namespace MM_API.Controllers
                 return StatusCode(500, "Internal Server Error");
             }
         }
-        //localhost:5223/kingdom/loadmap
-        [Authorize(Policy = "UserPolicy")]
-        [HttpGet("loadmap")]
-        public async Task<ActionResult<IMapLoadResponse>> LoadMap()//[FromBody] MapLoadPayload payload
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            try
-            {
-                var result = await _kingdomService.LoadMap();
-                if (result is IMapLoadResponse)
-                {
-                    return Ok(result);
-                }
-                else
-                {
-                    return StatusCode(500, "Unexpected Error Occurred"); //incorrect error code - unsure how to handle 
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Load map failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
-            }
-        }
+
         //localhost:5223/kingdom/updatemap
         [Authorize(Policy = "UserPolicy")]
         [HttpPatch("updatemap")]
@@ -99,3 +73,31 @@ namespace MM_API.Controllers
 
     }
 }
+
+////localhost:5223/kingdom/loadmap
+//[Authorize(Policy = "UserPolicy")]
+//[HttpGet("loadmap")]
+//public async Task<ActionResult<IMapLoadResponse>> LoadMap()//[FromBody] MapLoadPayload payload
+//{
+//    if (!ModelState.IsValid)
+//    {
+//        return BadRequest(ModelState);
+//    }
+//    try
+//    {
+//        var result = await _kingdomService.LoadMap();
+//        if (result is IMapLoadResponse)
+//        {
+//            return Ok(result);
+//        }
+//        else
+//        {
+//            return StatusCode(500, "Unexpected Error Occurred"); //incorrect error code - unsure how to handle 
+//        }
+//    }
+//    catch (Exception ex)
+//    {
+//        System.Diagnostics.Debug.WriteLine($"Load map failed: {ex.Message}");
+//        return StatusCode(500, "Internal Server Error");
+//    }
+//}
