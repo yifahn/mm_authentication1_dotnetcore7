@@ -965,7 +965,7 @@ namespace MM_API.Services
 //            {
 //                LoginResponse signInResponse = JsonConvert.DeserializeObject<LoginResponse>(responseBody);
 
-//                t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == signInResponse.Id);  //fk_user_id == user.user_id
+//                t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == signInResponse.ServerId);  //fk_user_id == user.user_id
 //                System.Diagnostics.Debug.WriteLine($"{user.user_id} - {user.user_fb_uuid} - {user.user_name}");
 //                t_Session session = new t_Session()
 //                {
@@ -1000,7 +1000,7 @@ namespace MM_API.Services
 //{
 //    try
 //    {
-//        t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == logoutPayload.Id);
+//        t_User user = await _dbContext.t_user.FirstAsync(u => u.user_fb_uuid == logoutPayload.ServerId);
 //        t_Session recentSession = await _dbContext.t_session
 //            .Where(s => s.fk_user_id == user.user_id)
 //            .OrderByDescending(s => s.session_loggedin)
@@ -1018,7 +1018,7 @@ namespace MM_API.Services
 //            {
 //                AccessToken = recentSession.session_sessiontoken,
 //                RefreshToken = recentSession.session_refreshtoken,
-//                Id = user.user_fb_uuid
+//                ServerId = user.user_fb_uuid
 //            };
 //            return signOutResponse;
 //        }
@@ -1118,7 +1118,7 @@ namespace MM_API.Services
 //                        t_User user = new t_User
 //                        {
 //                            user_name = deserialisedResponse.Email.Substring(0, deserialisedResponse.Email.IndexOf('@')),
-//                            user_fb_uuid = deserialisedResponse.Id
+//                            user_fb_uuid = deserialisedResponse.ServerId
 //                        };
 //                        t_Session session = new t_Session()
 //                        {
@@ -1220,7 +1220,7 @@ namespace MM_API.Services
 //                string responseBody = await response.Content.ReadAsStringAsync();
 //                LoginResponse deserialisedResponse = JsonConvert.DeserializeObject<LoginResponse>(responseBody);
 
-//                t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == deserialisedResponse.Id);  //fk_user_id == user.user_id
+//                t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == deserialisedResponse.ServerId);  //fk_user_id == user.user_id
 //                var session = _dbContext.t_session.FirstOrDefault(s => s.user == user);
 //                session.session_authtoken = deserialisedResponse.AccessToken;
 //                session.session_refreshtoken = deserialisedResponse.RefreshToken;
@@ -1261,9 +1261,9 @@ namespace MM_API.Services
 //public async Task<ILogoutResponse> LogoutAsync(LogoutPayload logoutPayload)
 //{
 //    //var deserialisedLogoutPayload = JsonConvert.DeserializeObject<LogoutPayload>(logoutPayload);
-//    await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(JsonConvert.SerializeObject(logoutPayload.Id));
+//    await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(JsonConvert.SerializeObject(logoutPayload.ServerId));
 
-//    var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == logoutPayload.Id);
+//    var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == logoutPayload.ServerId);
 //    var session = _dbContext.t_session.FirstOrDefault(s => s.fk_user_id == t_user.user_id);// change .FirstOrDefault on this and login endpoints to .Last in t_session find as user will eventually own many sesssions, instead of replacing the same session entry each time
 //    try
 //    {
@@ -1397,7 +1397,7 @@ namespace MM_API.Services
     //                    t_User user = new t_User
     //                    {
     //                        user_name = userRecord.Email.Substring(0, userRecord.Email.IndexOf('@')),
-    //                        user_fb_uuid = userRecord.Id
+    //                        user_fb_uuid = userRecord.ServerId
     //                    };
     //                    t_Session session = new t_Session()
     //                    {
@@ -1477,7 +1477,7 @@ namespace MM_API.Services
 //                    //{
 //                    //    throw new InvalidOperationException("Invalid JWT token");
 //                    //}
-//                    t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == userRecord.Id);
+//                    t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == userRecord.ServerId);
 //                    var session = _dbContext.t_session.FirstOrDefault(s => s.user == user);//fk_user_id == user.user_id
 //                    session.session_authtoken = userRecord.AccessToken;
 //                    session.session_refreshtoken = userRecord.RefreshToken;
@@ -1512,9 +1512,9 @@ namespace MM_API.Services
 //    public async Task<bool> LogoutAsync(LogoutPayload logoutPayload)
 //    {
 //        //var deserialisedLogoutPayload = JsonConvert.DeserializeObject<LogoutPayload>(logoutPayload);
-//        await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(JsonConvert.SerializeObject(logoutPayload.Id));
+//        await FirebaseAuth.DefaultInstance.RevokeRefreshTokensAsync(JsonConvert.SerializeObject(logoutPayload.ServerId));
 
-//        var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == logoutPayload.Id);
+//        var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == logoutPayload.ServerId);
 //        var session = _dbContext.t_session.FirstOrDefault(s => s.fk_user_id == t_user.user_id);// change .FirstOrDefault on this and login endpoints to .Last in t_session find as user will eventually own many sesssions, instead of replacing the same session entry each time
 //        try
 //        {
@@ -1610,7 +1610,7 @@ namespace MM_API.Services
 //                    t_User user = new t_User
 //                    {
 //                        user_name = signInResponse.Email.Substring(0, payload.Email.IndexOf('@')),
-//                        user_fb_uuid = signInResponse.Id
+//                        user_fb_uuid = signInResponse.ServerId
 //                    };
 //                    t_Session session = new t_Session()
 //                    {
@@ -1667,7 +1667,7 @@ namespace MM_API.Services
 //                    {
 //                        throw new InvalidOperationException("Invalid JWT token");
 //                    }
-//                    t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == signInResponse.Id);
+//                    t_User user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == signInResponse.ServerId);
 //                    var session = _dbContext.t_session.FirstOrDefault(s => s.user == user);//fk_user_id == user.user_id
 //                    session.session_authtoken = signInResponse.AccessToken;
 //                    session.session_refreshtoken = signInResponse.RefreshToken;
@@ -1698,7 +1698,7 @@ namespace MM_API.Services
 
 //    public async Task<bool> LogoutAsync(LogoutPayload payload)
 //    {
-//        var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == payload.Id);
+//        var t_user = _dbContext.t_user.FirstOrDefault(u => u.user_fb_uuid == payload.ServerId);
 //        var session = _dbContext.t_session.Last(s => s.fk_user_id == t_user.user_id);
 //        try
 //        {

@@ -83,7 +83,7 @@ namespace MM_API
 
             //modelBuilder.Entity<ApplicationUser>().HasData(new ApplicationUser
             //{
-            //    Id = userUserId,
+            //    ServerId = userUserId,
             //    CustomUserId = t_UserIdInt_User,
             //    UserName = "yifahnuser",
             //    NormalizedUserName = "YIFAHNUSER",

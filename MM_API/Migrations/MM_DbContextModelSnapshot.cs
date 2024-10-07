@@ -96,16 +96,16 @@ namespace MM_API.Migrations
                         {
                             Id = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "3fa31784-a2d8-4d4d-80a7-ce63ff761f1d",
+                            ConcurrencyStamp = "74829157-ae64-44f9-a4e7-0b8d919ce501",
                             CustomUserId = -999,
                             Email = "yifahnadmin@gmail.com",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
                             NormalizedEmail = "YIFAHNADMIN@GMAIL.COM",
                             NormalizedUserName = "YIFAHNADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEArYBZ4q6BxtF6YJ6JR9OUKMaDP9MNgrOtJI3ok6StDajga5qMX8CmeNRLBQt979AQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEAIdjjEJ30C6JU9KTKZqyJZuYStgmpk8jMJs3VHFMz9NDfyOq/TwcevVuYv54NvWjg==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fa539a64-e6a5-4404-8ab5-a6a5fbef4ee1",
+                            SecurityStamp = "d81367fa-11e8-4296-9dcd-33cadb365a21",
                             TwoFactorEnabled = false,
                             UserName = "yifahnadmin"
                         });
