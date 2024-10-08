@@ -15,6 +15,10 @@ using MM_API.Database.Postgres;
 using System.Security.Claims;
 
 using Npgsql.EntityFrameworkCore.PostgreSQL;
+using Npgsql;
+using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
+using SharedGameFramework.Game;
 
 namespace MM_API
 {
@@ -26,12 +30,23 @@ namespace MM_API
             //CREATE WEBAPP BUILDER
             var builder = WebApplication.CreateBuilder(args);
 
-            // POSTGRESQL CONNECTION
-            builder.Services.AddDbContext<MM_DbContext>(options =>
-                options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
-            System.Diagnostics.Debug.WriteLine($"Connection String: {builder.Configuration.GetConnectionString("Db")}");
+            var settings = new JsonSerializerSettings();
+            settings.Converters.Add(new SerialisationSupport());
+            //NpgsqlConnection.GlobalTypeMapper.EnableDynamicJson();
 
-           
+            // Npgsql JSON.NET Configuration (Use Newtonsoft.Json)
+            var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("Db"));
+            dataSourceBuilder.UseJsonNet(settings); // Switch to Newtonsoft.Json
+            var dataSource = dataSourceBuilder.Build();
+
+            builder.Services.AddDbContext<MM_DbContext>(options =>
+            options.UseNpgsql(dataSource));
+            //// POSTGRESQL CONNECTION
+            //builder.Services.AddDbContext<MM_DbContext>(options =>
+            //    options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
+            //System.Diagnostics.Debug.WriteLine($"Connection String: {builder.Configuration.GetConnectionString("Db")}");
+
+
             #region Authentication & Authorization
             builder.Services.AddAuthorization(options =>
             {
@@ -97,7 +112,10 @@ namespace MM_API
 
 
             // ADD CONTROLLERS
-            builder.Services.AddControllers().AddNewtonsoftJson(o => { });
+            builder.Services.AddControllers().AddNewtonsoftJson(options =>
+            {
+                options.SerializerSettings.Converters.Add(new SerialisationSupport());
+            });
 
             // ADD SWASHBUCKLE/SWAGGER
             builder.Services.AddEndpointsApiExplorer();

@@ -256,7 +256,7 @@ namespace MM_API.Services
                     string attributeType = resultAttribute.AttributeType;
                     int level = resultAttribute.Level;
 
-                    sqlQuery =  @"UPDATE t_character SET character_sheet = jsonb_set(character_sheet::jsonb,'{Attributes}',(SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, '{Level}', ((attr->> 'Level')::int + @Increment)::text::jsonb) ELSE attr END) FROM jsonb_array_elements(character_sheet->'Attributes') AS attr)) WHERE fk_user_id = @UserId;";
+                    sqlQuery =  @"UPDATE t_character SET character_sheet = jsonb_set(character_sheet::jsonb,'{AttributeArray}',(SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, '{Level}', ((attr->> 'Level')::int + @Increment)::text::jsonb) ELSE attr END) FROM jsonb_array_elements(character_sheet->'AttributeArray') AS attr)) WHERE fk_user_id = @UserId;";
 
                     parameters =
                     [
@@ -330,7 +330,7 @@ namespace MM_API.Services
 //                    string attributeType = resultAttribute.AttributeType;
 //    int level = resultAttribute.Level;
 
-//    sqlQuery = $@"UPDATE t_character SET character_sheet = jsonb_set(character_sheet::jsonb,'{{Attributes}}',(SELECT jsonb_agg(CASE WHEN attr->>'AttributeType' = @AttributeType THEN jsonb_set(attr, '{{Level}}', (attr->>'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_sheet->'Attributes') AS attr), true ) WHERE character_sheet @> jsonb_build_object('Attributes', jsonb_build_array(jsonb_build_object('AttributeType', @AttributeType)));";
+//    sqlQuery = $@"UPDATE t_character SET character_sheet = jsonb_set(character_sheet::jsonb,'{{AttributeArray}}',(SELECT jsonb_agg(CASE WHEN attr->>'AttributeType' = @AttributeType THEN jsonb_set(attr, '{{Level}}', (attr->>'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_sheet->'AttributeArray') AS attr), true ) WHERE character_sheet @> jsonb_build_object('AttributeArray', jsonb_build_array(jsonb_build_object('AttributeType', @AttributeType)));";
 //                    parameters =
 //                    [
 //                        new NpgsqlParameter("@AttributeType", attributeType),
@@ -353,7 +353,7 @@ namespace MM_API.Services
 //                    //sqlQuery = @"UPDATE t_armoury SET armoury_inventory = jsonb_set(armoury_inventory, @EquipmentArray, (SELECT jsonb_agg(elem) FROM (SELECT elem FROM jsonb_array_elements(armoury_inventory->'Equipment') AS elem UNION ALL SELECT @NewEquipment::jsonb) AS combined), true) WHERE fk_user_id = @UserId;";
 
 
-//                    // test equipment piece == {""ServerId"":""Test\"",\""Name\"":""Test"",""Unique"":false,""WeaponType"":""Sword"",""DamageRating"":10,""EquipmentType"":""Weapon""}
+//                    // test equipment piece == {""ServerId"":""Test\"",\""Name\"":""Test"",""Unique"":false,""WeaponType"":""Sword"",""DamageRating"":10,""EquipmentType"":""BaseWeapon""}
 //                    // it seem cannot run sql query with " { " or " } " characters, unable to escape with double {{, }} , issue remains, it seems sqlparameters work however
 
 //                    //sqlQuery = $@"UPDATE t_armoury SET armoury_inventory = '{{}}'::jsonb WHERE fk_user_id = 16;";
@@ -403,22 +403,22 @@ namespace MM_API.Services
 
 
 //LEARNING IS A HEADACHE ... NOTEPAD STUFF
-//(character_sheet, '{Attributes}', (SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, '{Level}', (attr->> 'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_sheet->'Attributes') AS attr)
+//(character_sheet, '{AttributeArray}', (SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, '{Level}', (attr->> 'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_sheet->'AttributeArray') AS attr)
 
-//"{""Equipment"": [{""ServerId"": ""b41c554b-a65a-4327-8f48-f5e5304a8bc3"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}]}"
-//"{""Equipment"": [{""ServerId"": ""b41c554b-a65a-4327-8f48-f5e5304a8bc3"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}]}"
-//"{""Equipment"": [{""ServerId"": ""b41c554b-a65a-4327-8f48-f5e5304a8bc3"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}]}"
-//"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}]}"
+//"{""Equipment"": [{""ServerId"": ""b41c554b-a65a-4327-8f48-f5e5304a8bc3"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}]}"
+//"{""Equipment"": [{""ServerId"": ""b41c554b-a65a-4327-8f48-f5e5304a8bc3"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}]}"
+//"{""Equipment"": [{""ServerId"": ""b41c554b-a65a-4327-8f48-f5e5304a8bc3"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}]}"
+//"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}]}"
 
-//{"WeaponType":"Spear","DamageRating":1,"EquipmentType":"Weapon","Unique":false,"Name":"Spear","ServerId":"7f4728fa-29b9-466e-8483-272c95252e61"}
+//{"WeaponType":"Spear","DamageRating":1,"EquipmentType":"BaseWeapon","Unique":false,"Name":"Spear","ServerId":"7f4728fa-29b9-466e-8483-272c95252e61"}
 //UPDATE t_armoury SET armoury_inventory = jsonb_set(armoury_inventory::jsonb,'{Equipment}', (armoury_inventory->'Equipment')::jsonb || @NewEquipment::jsonb) WHERE fk_user_id = @UserId;
 
 
 
 //UPDATE t_armoury SET armoury_inventory = jsonb_set(armoury_inventory::jsonb,'Equipment', (armoury_inventory->'Equipment')::jsonb || @NewEquipment::jsonb) WHERE fk_user_id = @UserId;
-//UPDATE t_character SET character_sheet = jsonb_set(character_sheet,'Attributes',(SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, 'Level', (attr->> 'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_sheet->'Attributes') AS attr), true ) WHERE character_sheet @> jsonb_build_object('Attributes', jsonb_build_array(jsonb_build_object('AttributeType', @AttributeType)));
+//UPDATE t_character SET character_sheet = jsonb_set(character_sheet,'AttributeArray',(SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, 'Level', (attr->> 'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_sheet->'AttributeArray') AS attr), true ) WHERE character_sheet @> jsonb_build_object('AttributeArray', jsonb_build_array(jsonb_build_object('AttributeType', @AttributeType)));
 
-//"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}]}"
+//"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}]}"
 
 //UPDATE t_armoury SET armoury_inventory = jsonb_set(armoury_inventory::jsonb, '{\"Equipment\"}', (armoury_inventory->'Equipment')::jsonb || @NewEquipment::jsonb) WHERE fk_user_id = @UserId;
 //UPDATE t_armoury SET armoury_inventory = jsonb_set(armoury_inventory::jsonb, '{Equipment}', (armoury_inventory->'Equipment')::jsonb || @NewEquipment::jsonb) WHERE fk_user_id = @UserId;
@@ -427,7 +427,7 @@ namespace MM_API.Services
 //UPDATE t_armoury SET armoury_inventory = jsonb_set(armoury_inventory, '{Equipment}', armoury_inventory->'Equipment' || @NewEquipment) WHERE fk_user_id = @UserId;
 
 
-//"{""Equipment"": [{""ServerId"": ""Test"", ""Name"": ""Test"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}, {""ServerId"": ""dd41d963-bacc-421e-b14d-82dfb15f767d"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}]}"
+//"{""Equipment"": [{""ServerId"": ""Test"", ""Name"": ""Test"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}, {""ServerId"": ""dd41d963-bacc-421e-b14d-82dfb15f767d"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}]}"
 
 //UPDATE t_armoury SET armoury_inventory = jsonb_insert(armoury_inventory,'{Equipment, -1}', @NewEquipment::jsonb) WHERE fk_user_id = @UserId;
 
@@ -440,16 +440,16 @@ namespace MM_API.Services
 //"UPDATE t_armoury SET armoury_inventory = jsonb_insert(armoury_inventory,'{Equipment, -1}', @NewEquipment::jsonb) WHERE fk_user_id = @UserId;";
 
 
-//UPDATE t_armoury SET armoury_inventory = jsonb_insert(armoury_inventory,{Equipment, -1},{\"ServerId\":\"Test\",\"Name\":\"Test\",\"Unique\":false,\"WeaponType\":\"Sword\",\"DamageRating\":10,\"EquipmentType\":\"Weapon\"}}::jsonb) WHERE fk_user_id = 16;
+//UPDATE t_armoury SET armoury_inventory = jsonb_insert(armoury_inventory,{Equipment, -1},{\"ServerId\":\"Test\",\"Name\":\"Test\",\"Unique\":false,\"WeaponType\":\"Sword\",\"DamageRating\":10,\"EquipmentType\":\"BaseWeapon\"}}::jsonb) WHERE fk_user_id = 16;
 
-//UPDATE t_armoury SET armoury_inventory = jsonb_insert(armoury_inventory, @EquipmentArray,{ ""ServerId"":""Test\"",\""Name\"":""Test"",""Unique"":false,""WeaponType"":""Sword"",""DamageRating"":10,""EquipmentType"":""Weapon""}
+//UPDATE t_armoury SET armoury_inventory = jsonb_insert(armoury_inventory, @EquipmentArray,{ ""ServerId"":""Test\"",\""Name\"":""Test"",""Unique"":false,""WeaponType"":""Sword"",""DamageRating"":10,""EquipmentType"":""BaseWeapon""}
 //}::jsonb) WHERE fk_user_id = @UserId; ";
 
-//"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e936"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}, {""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}, {""ServerId"": ""8f488c1d-7802-4d1f-ba3f-2da8600881f7"", ""Name"": ""Staff"", ""Unique"": false, ""WeaponType"": ""Staff"", ""DamageRating"": 7, ""EquipmentType"": ""Weapon""}]}"
+//"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e936"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}, {""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}, {""ServerId"": ""8f488c1d-7802-4d1f-ba3f-2da8600881f7"", ""Name"": ""Staff"", ""Unique"": false, ""WeaponType"": ""Staff"", ""DamageRating"": 7, ""EquipmentType"": ""BaseWeapon""}]}"
 
-//"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e936"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}, {""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}, {""ServerId"": ""8f488c1d-7802-4d1f-ba3f-2da8600881f7"", ""Name"": ""Staff"", ""Unique"": false, ""WeaponType"": ""Staff"", ""DamageRating"": 7, ""EquipmentType"": ""Weapon""}]}"
+//"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e936"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}, {""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}, {""ServerId"": ""8f488c1d-7802-4d1f-ba3f-2da8600881f7"", ""Name"": ""Staff"", ""Unique"": false, ""WeaponType"": ""Staff"", ""DamageRating"": 7, ""EquipmentType"": ""BaseWeapon""}]}"
 
-//"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e936"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}, {""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}, {""ServerId"": ""8f488c1d-7802-4d1f-ba3f-2da8600881f7"", ""Name"": ""Staff"", ""Unique"": false, ""WeaponType"": ""Staff"", ""DamageRating"": 7, ""EquipmentType"": ""Weapon""}]}"
+//"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e936"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}, {""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}, {""ServerId"": ""8f488c1d-7802-4d1f-ba3f-2da8600881f7"", ""Name"": ""Staff"", ""Unique"": false, ""WeaponType"": ""Staff"", ""DamageRating"": 7, ""EquipmentType"": ""BaseWeapon""}]}"
 
-//"{""Equipment"": [{""ServerId"": ""Test"", ""Name"": ""Test"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}, {""ServerId"": ""Test"", ""Name"": ""Test"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}, {""ServerId"": ""5e957481-09ff-4a80-b45a-980790536cb2"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""Weapon""}]}"
+//"{""Equipment"": [{""ServerId"": ""Test"", ""Name"": ""Test"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}, {""ServerId"": ""Test"", ""Name"": ""Test"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}, {""ServerId"": ""5e957481-09ff-4a80-b45a-980790536cb2"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}]}"
 

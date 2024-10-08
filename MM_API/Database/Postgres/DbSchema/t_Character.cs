@@ -3,6 +3,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 using SharedGameFramework.Game.Character;
 using System.Diagnostics.CodeAnalysis;
 using MM_API.Database.Postgres.DbSchema;
+using SharedGameFramework.Game.Armoury.Equipment;
+using SharedGameFramework.Game.Character.Attribute;
+using SharedGameFramework.Game.Character.State;
 
 namespace MM_API.Database.Postgres.DbSchema
 {
@@ -19,15 +22,26 @@ namespace MM_API.Database.Postgres.DbSchema
 
 
         [Column(TypeName = "jsonb")]
-        public string character_sheet { get; set; }
+        public SharedGameFramework.Game.Character.Attribute.Attribute[] character_sheet { get; set; }
+
 
         [Column(TypeName = "jsonb")]
-        public string character_inventory { get; set; }
+        public BaseWeapon[] character_weapons { get; set; } 
 
         [Column(TypeName = "jsonb")]
-        public string character_state { get; set; }
+        public BaseArmour[] character_armour { get; set; }
+
+        [Column(TypeName = "jsonb")]
+        public BaseJewellery[] character_jewellery { get; set; }
+
+
+        [Column(TypeName = "jsonb")]
+        public State character_state { get; set; }
     }
-}
+}        
+
+//VALUES OF EQUIPMENT ARRAY IS NULL IN CHARACTER SERVICE CLASS IM TESTING? MY THOUGHTS ARE BECAUSE THIS IS ABSTRACT CLASS - CANNOT INSTANTIATE CONCRETE CLASS OBJECT, BUT ATTRIBUTE ISN'T NULL? investigate further...
+
 //[Key]
 //public int character_id { get; set; }
 //public string character_name { get; set; }

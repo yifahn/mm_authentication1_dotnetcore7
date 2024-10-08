@@ -1,24 +1,24 @@
-﻿using MM_API.Database.Postgres.DbSchema;
-using System.Text;
-using Newtonsoft.Json;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
-using SharedNetworkFramework.Authentication.Logout;
+
 using System.Security.Claims;
+
 using SharedNetworkFramework.Game.Character;
 using SharedNetworkFramework.Game.Kingdom.Map;
 using SharedNetworkFramework.Game.Kingdom;
 using SharedNetworkFramework.Game.Character.Sheet;
 using SharedNetworkFramework.Game.Character.State;
 using SharedNetworkFramework.Game.Character.Inventory;
+
 using MM_API.Database.Postgres;
-using Npgsql;
+using MM_API.Database.Postgres.DbSchema;
+using SharedGameFramework.Game;
 using SharedGameFramework.Game.Kingdom.Map;
 using SharedGameFramework.Game.Armoury.Equipment;
 using SharedGameFramework.Game.Character;
-using NpgsqlTypes;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.EntityFrameworkCore.Metadata;
+
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace MM_API.Services
 {
@@ -65,9 +65,11 @@ namespace MM_API.Services
                 return new CharacterLoadResponse
                 {
                     CharacterName = character.character_name,
-                    CharacterInventory = character.character_inventory,
-                    CharacterSheet = character.character_sheet,
-                    CharacterState = character.character_state
+                    CharacterWeapons = JsonConvert.SerializeObject(character.character_weapons),
+                    CharacterArmour = JsonConvert.SerializeObject(character.character_armour),
+                    CharacterJewellery = JsonConvert.SerializeObject(character.character_jewellery),
+                    CharacterSheet = JsonConvert.SerializeObject(character.character_sheet),
+                    CharacterState = JsonConvert.SerializeObject(character.character_state)
                 };
             }
             catch (Exception ex)
@@ -85,22 +87,68 @@ namespace MM_API.Services
 
                 var user = await _userManager.FindByIdAsync(userId);
                 string[] equipmentIdNums = inventoryUpdatePayload.EquipmentLocalIdNums;
+                string[] equipmentTypes = inventoryUpdatePayload.EquipmentTypes;
                 int equipmentAddOrRemove = inventoryUpdatePayload.EquipmentAddOrRemove;
 
-                t_Character character = await _dbContext.t_character.FirstAsync(c => c.fk_user_id == user.CustomUserId);
-                t_Armoury armoury = await _dbContext.t_armoury.FirstAsync(a => a.fk_user_id == user.CustomUserId);
-                
-                var armoury_inventory2 = JsonConvert.DeserializeObject(armoury.armoury_inventory);
+               // List<IDeserialisable> equipmentList = new List<IDeserialisable>();
 
-                string armoury_inventory1 = armoury.armoury_inventory.ToString();
-                //using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+                if (equipmentAddOrRemove == 1)//should be 0 //de-equip/remove from character, add to armoury
+                {
+                    t_Character character = await _dbContext.t_character.FirstAsync(u => u.fk_user_id == user.CustomUserId);
+
+                    for (int i = 0; i < equipmentIdNums.Length; i++)
+                    {
+
+                        IDeserialisable equipmentPiece = null;
+
+                        switch (equipmentTypes[i])
+                        {
+                            case "Weapon":
+                                equipmentPiece = character.character_weapons
+                                    .First(e => e.LocalId == equipmentIdNums[i]);
+                                break;
+                            case "Armour":
+                                equipmentPiece = character.character_armour
+                                    .First(e => e.LocalId == equipmentIdNums[i]);
+                                break;
+                            case "Jewellery":
+                                equipmentPiece = character.character_jewellery
+                                     .First(e => e.LocalId == equipmentIdNums[i]);
+                                break;
+                        }
+                    }
+                }
+                //else if ()
                 //{
-                //    var sqlResult = GenerateInventoryUpdateSQL(user.CustomUserId, equipmentAddOrRemove, equipmentIdNums);
 
-                //    await _dbContext.Database.ExecuteSqlRawAsync(sqlResult.Item1, sqlResult.Item2);
-
-                //    await transaction.CommitAsync();
                 //}
+
+
+
+                //t_Character character = await _dbContext.t_character.FirstAsync(c => c.fk_user_id == user.CustomUserId);
+                //t_Armoury armoury = await _dbContext.t_armoury.FirstAsync(a => a.fk_user_id == user.CustomUserId);
+
+                //JObject armouryInventoryJObject = JObject.Parse(armoury.armoury_inventory);
+                //JArray armouryInventoryArray = (JArray)armouryInventoryJObject["Equipment"];
+
+                //JObject characterInventoryJObject = JObject.Parse(character.character_inventory);
+                //JArray characterInventoryArray = (JArray)characterInventoryJObject["Equipment"];
+
+                //List<IDeserialisable> deserialisedObjectList1 = new List<IDeserialisable>();
+                //List<IDeserialisable> deserialisedObjectList2 = new List<IDeserialisable>();
+
+                //foreach (JObject item in armouryInventoryArray)
+                //{
+                //    deserialisedObjectList1.Add(JsonConvert.DeserializeObject<IDeserialisable>(item.ToString(), new SerialisationSupport()));
+                //}
+                //foreach (JObject item in characterInventoryArray)
+                //{
+                //    deserialisedObjectList2.Add(JsonConvert.DeserializeObject<IDeserialisable>(item.ToString(), new SerialisationSupport()));
+                //}
+
+
+
+
 
 
                 return new InventoryUpdateResponse
@@ -145,50 +193,81 @@ namespace MM_API.Services
             }
             return null;
         }
-
-        public (string, NpgsqlParameter[]) GenerateInventoryUpdateSQL(int userId, int equipmentAddOrRemove, string[] equipmentLocalIds)
-        {
-            var sqlBuilder = new StringBuilder();
-            var parameters = new List<NpgsqlParameter>();
-
-            int operationStage = 0;
-
-            for (int ii = 0; ii < equipmentLocalIds.Length; ii++)
-            {
-                if (operationStage == 0) //stage 0 == acquire equipment
-                {
-                    if (equipmentAddOrRemove == 0) //remove from character, add to armoury || de-equip character
-                    {
-                        sqlBuilder.Append(@"UPDATE t_armoury SET armoury_inventory = jsonb_insert(armoury_inventory, @EquipmentArray, @NewEquipment::jsonb) WHERE fk_user_id = @UserId");
-
-
-                        sqlBuilder.Append(@"UPDATE t_character SET character_inventory =         WHERE fk_user_id = @UserId");
-                    }
-                    else if (equipmentAddOrRemove == 1) //remove from armoury, add to character || equip character
-                    {
-
-                    }
-                }
-                else if (operationStage == 1)//stage 1 == move equipment
-                {
-                    if (equipmentAddOrRemove == 0) //remove from character, add to armoury || de-equip character
-                    {
-
-                    }
-                    else if (equipmentAddOrRemove == 1) //remove from armoury, add to character || equip character
-                    {
-
-                    }
-                }
-            }
-
-            return (sqlBuilder.ToString(), parameters.ToArray());
-        }
     }
 }
 #endregion
 
+//var deserialisableList = JsonConvert.DeserializeObject<IDeserialisable>(equipmentArray.ToString(), new SerialisationSupport()) as List<IDeserialisable>;
 
+
+
+//foreach (JToken item in equipmentArray)
+//{
+//    IDeserialisable equipmentItem = JsonConvert.DeserializeObject<IDeserialisable>(item.ToString(), new SerialisationSupport());
+//    deserialisableList.Add(equipmentItem);
+//}
+
+//JsonNode jsonNode = JsonNode.Parse(armoury.armoury_inventory);
+//JsonArray equipmentArray = jsonNode["Equipment"].AsArray();
+//int counter =  equipmentArray.Count;
+
+//var inventory = JsonDocument.Parse(armoury.armoury_inventory);
+//int equipmentCount = inventory.RootElement.GetProperty("Equipment").GetArrayLength();
+
+//WHEN I CONTINUE, REMEMBER: REMOVE Equipment and AttributeArray array, just have array elements themselves in db, this count method shoudl work
+
+
+// EquipmentInventory characterInventory = new EquipmentInventory();
+//EquipmentInventory armouryInventory = JsonConvert.DeserializeObject<List<IDeserialisable>>(armoury.armoury_inventory, new SerialisationSupport());
+
+
+
+//using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+//{
+//    var sqlResult = GenerateInventoryUpdateSQL(user.CustomUserId, equipmentAddOrRemove, equipmentIdNums);
+
+//    await _dbContext.Database.ExecuteSqlRawAsync(sqlResult.Item1, sqlResult.Item2);
+
+//    await transaction.CommitAsync();
+//}
+//public (string, NpgsqlParameter[]) GenerateInventoryUpdateSQL(int userId, int equipmentAddOrRemove, string[] equipmentLocalIds)
+//{
+//    var sqlBuilder = new StringBuilder();
+//    var parameters = new List<NpgsqlParameter>();
+
+//    int operationStage = 0;
+
+//    for (int ii = 0; ii < equipmentLocalIds.Length; ii++)
+//    {
+//        if (operationStage == 0) //stage 0 == acquire equipment
+//        {
+//            if (equipmentAddOrRemove == 0) //remove from character, add to armoury || de-equip character
+//            {
+//                sqlBuilder.Append(@"UPDATE t_armoury SET armoury_inventory = jsonb_insert(armoury_inventory, @EquipmentArray, @NewEquipment::jsonb) WHERE fk_user_id = @UserId");
+
+
+//                sqlBuilder.Append(@"UPDATE t_character SET character_inventory =         WHERE fk_user_id = @UserId");
+//            }
+//            else if (equipmentAddOrRemove == 1) //remove from armoury, add to character || equip character
+//            {
+
+//            }
+//        }
+//        else if (operationStage == 1)//stage 1 == move equipment
+//        {
+//            if (equipmentAddOrRemove == 0) //remove from character, add to armoury || de-equip character
+//            {
+
+//            }
+//            else if (equipmentAddOrRemove == 1) //remove from armoury, add to character || equip character
+//            {
+
+//            }
+//        }
+//    }
+
+//    return (sqlBuilder.ToString(), parameters.ToArray());
+//}
 
 //else if (operationStage == 1) //construct SQL to move from armoury to character inventories or vice versa
 //{

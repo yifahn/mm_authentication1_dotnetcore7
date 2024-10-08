@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using SharedGameFramework.Game.Armoury;
 using System.Diagnostics.CodeAnalysis;
 using MM_API.Database.Postgres.DbSchema;
+using SharedGameFramework.Game.Armoury.Equipment;
 
 namespace MM_API.Database.Postgres.DbSchema
 {
@@ -16,8 +17,15 @@ namespace MM_API.Database.Postgres.DbSchema
         [ForeignKey("fk_user_id")]
         public t_User User { get; set; }
 
+
         [Column(TypeName = "jsonb")]
-        public string armoury_inventory { get; set; }
+        public BaseWeapon[] character_weapons { get; set; }
+
+        [Column(TypeName = "jsonb")]
+        public BaseArmour[] character_armour { get; set; }
+
+        [Column(TypeName = "jsonb")]
+        public BaseJewellery[] character_jewellery { get; set; }
     }
 }
 //public int fk_kingdom_id { get; set; }

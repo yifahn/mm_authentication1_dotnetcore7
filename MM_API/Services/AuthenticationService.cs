@@ -153,8 +153,6 @@ namespace MM_API.Services
                         var armoury = new t_Armoury()
                         {
                             fk_user_id = user.user_id,
-
-                            armoury_inventory = ""
                         };
 
                         await _dbContext.AddAsync(armoury);
@@ -508,7 +506,7 @@ namespace MM_API.Services
                            new Stamina{ Level = 1 },
                            new Strength{ Level = 1 }
                         ];
-                        CharacterSheet characterSheet = new CharacterSheet() { Attributes = attributes };
+                        CharacterSheet characterSheet = new CharacterSheet() { AttributeArray = attributes };
 
                         State state = new State()
                         {
@@ -520,40 +518,53 @@ namespace MM_API.Services
                         };
                         CharacterState characterState = new CharacterState() { State = state };
 
-                        Equipment[] characterEquipment =
-                        [
-                            new Ring {
-                                JewelleryTier = 1,
-                                Name = "Wedding Ring",
-                                ConstitutionBoon = 5,
-                                LuckBoon = 1,
-                                StaminaBoon = 1
-                            },
-                            new Torso {
-                                Name = "Sheep's-wool Woven Shirt",
-                                ArmourTier = 1,
-                                DefenceRating = 2
-                            },
-                            new Legs {
-                                Name = "Leather Chaps",
-                                ArmourTier = 1,
-                                DefenceRating = 5
-                            },
-                            new Feet {
-                                Name = "Leather Sandals",
-                                ArmourTier = 1,
-                                DefenceRating = 2
-                            }
-                        ];
-                        CharacterInventory characterInventory = new CharacterInventory() { Equipment = characterEquipment };
-
+                        CharacterInventory characterInventory = new CharacterInventory()
+                        {
+                            WeaponArray =
+                            [
+                                ],
+                            ArmourArray =
+                            [
+                                new Torso {
+                                    Name = "Sheep's-wool Woven Shirt",
+                                    ArmourTier = 1,
+                                    DefenceRating = 2
+                                },
+                                new Legs
+                                {
+                                    Name = "Leather Chaps",
+                                    ArmourTier = 1,
+                                    DefenceRating = 5
+                                },
+                                new Feet
+                                {
+                                    Name = "Leather Sandals",
+                                    ArmourTier = 1,
+                                    DefenceRating = 2
+                                }
+                                ],
+                            JewelleryArray =
+                            [
+                                new Ring {
+                                    JewelleryTier = 1,
+                                    Name = "Wedding Ring",
+                                    ConstitutionBoon = 5,
+                                    LuckBoon = 1,
+                                    StaminaBoon = 1
+                                }
+                                ],
+                        };
                         var character = new t_Character()
                         {
                             character_name = "null",
                             fk_user_id = user.user_id,
-                            character_inventory = JsonConvert.SerializeObject(characterInventory), //serialising empty string? be careful when adding into this
-                            character_sheet = JsonConvert.SerializeObject(characterSheet),
-                            character_state = JsonConvert.SerializeObject(characterState),
+
+                            character_weapons = characterInventory.WeaponArray,//JsonConvert.SerializeObject(characterInventory), //serialising empty string? be careful when adding into this
+                            character_armour = characterInventory.ArmourArray,
+                            character_jewellery = characterInventory.JewelleryArray,
+
+                            character_sheet = characterSheet.AttributeArray,//JsonConvert.SerializeObject(characterSheet),
+                            character_state = characterState.State//JsonConvert.SerializeObject(characterState),
                         };
                         await _dbContext.AddAsync(character);
 
@@ -573,20 +584,33 @@ namespace MM_API.Services
                         };
                         await _dbContext.AddAsync(treasury);
 
-                        Equipment[] armouryEquipment =
-                        [
-                            new Sword {
-                                Name = "Iron Sword",
-                                DamageRating = 10,
-                                Unique = false
-                            },
-                        ];
-                        ArmouryInventory armouryInventory = new ArmouryInventory() { Equipment = armouryEquipment };
+                        ArmouryInventory armouryInventory = new ArmouryInventory() 
+                        {
+                            WeaponArray =
+                            [
+                                new Sword 
+                                {
+                                    Name = "Iron Sword",
+                                    DamageRating = 10,
+                                    Unique = false
+                                },
+                                ],
+                            ArmourArray = 
+                            [
+                                ],
+                            JewelleryArray = 
+                            [
+
+                                ],
+                        };
 
                         var armoury = new t_Armoury()
                         {
                             fk_user_id = user.user_id,
-                            armoury_inventory = JsonConvert.SerializeObject(armouryInventory),
+
+                            character_weapons = armouryInventory.WeaponArray,
+                            character_armour = armouryInventory.ArmourArray,
+                            character_jewellery = armouryInventory.JewelleryArray
                         };
 
                         await _dbContext.AddAsync(armoury);
