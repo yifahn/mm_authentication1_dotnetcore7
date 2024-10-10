@@ -11,21 +11,29 @@ namespace MM_API.Database.Postgres.DbSchema
     {
         [Key]
         public int armoury_id { get; set; }
-
         public int fk_user_id { get; set; }
-
         [ForeignKey("fk_user_id")]
         public t_User User { get; set; }
 
 
         [Column(TypeName = "jsonb")]
-        public BaseWeapon[] character_weapons { get; set; }
+        public string armoury_weapons { get; set; }
 
         [Column(TypeName = "jsonb")]
-        public BaseArmour[] character_armour { get; set; }
+        public string armoury_armour { get; set; }
 
         [Column(TypeName = "jsonb")]
-        public BaseJewellery[] character_jewellery { get; set; }
+        public string armoury_jewellery { get; set; }
+
+
+        //[Column(TypeName = "jsonb")]
+        //public List<BaseWeapon> armoury_weapons { get; set; }
+
+        //[Column(TypeName = "jsonb")]
+        //public List<BaseArmour> armoury_armour { get; set; }
+
+        //[Column(TypeName = "jsonb")]
+        //public List<BaseJewellery> armoury_jewellery { get; set; }
     }
 }
 //public int fk_kingdom_id { get; set; }
@@ -35,4 +43,4 @@ namespace MM_API.Database.Postgres.DbSchema
 
 //[AllowNull]
 //[Column(TypeName = "jsonb")]
-//public ArmouryInventory armoury_inventory { get; set; }
+//public EquipmentInventory armoury_inventory { get; set; }

@@ -456,37 +456,169 @@ namespace MM_API.Services
         {
             try
             {
+                RefreshToken sessionRefreshToken = new RefreshToken()
+                {
+                    Token = "null",
+                    Expires = DateTimeOffset.MinValue,
+                    Created = DateTimeOffset.MinValue
+                };
+
+
+                State characterState = new State()
+                {
+                    character_cooldown = 0,
+                    character_died = DateTimeOffset.MinValue,
+                    character_isactive = true,
+                    character_isalive = true,
+                    character_iscooldown = false
+                };
+                BaseWeapon[] characterWeapons = [];
+                BaseArmour[] characterArmour =
+                    [
+                    new Torso {
+                        Name = "Sheep's-wool Woven Shirt",
+                        ArmourTier = 1,
+                        DefenceRating = 2
+                    },
+                    new Legs
+                    {
+                        Name = "Leather Chaps",
+                        ArmourTier = 1,
+                        DefenceRating = 5
+                    },
+                    new Feet
+                    {
+                    Name = "Leather Sandals",
+                    ArmourTier = 1,
+                    DefenceRating = 2
+                    }
+                    ];
+                BaseJewellery[] characterJewellery =
+                    [
+                    new Ring
+                    {
+                        JewelleryTier = 1,
+                        Name = "Wedding Ring",
+                        ConstitutionBoon = 5,
+                        LuckBoon = 1,
+                        StaminaBoon = 1
+                    }
+                    ];
+                BaseAttribute[] characterAttributes =
+                    [
+                    new CharacterLevel
+                    {
+                        Level = 1
+                    },
+                    new Constitution
+                    {
+                        Level = 50
+                    },
+                    new Defence
+                    {
+                        Level = 1
+                    },
+                    new Luck
+                    {
+                        Level = 1
+                    },
+                    new Stamina
+                    {
+                        Level = 1
+                    },
+                    new Strength
+                    {
+                        Level = 1
+                    }
+                    ];
+
+
+                BaseWeapon[] armouryWeapons =
+                    [
+                    new Sword
+                    {
+                        Name = "Iron Sword",
+                        DamageRating = 10,
+                        Unique = false
+                    }
+                    ];
+                BaseArmour[] armouryArmour = [];
+                BaseJewellery[] armouryJewellery = [];
+
+
+                //FOR TESTING - IF SERIALISING .NET STRUC ARRAYS DOESN'T WORK, TRY FOR LOOP THROUGH EACH ELEMENT IN ARRAY, AND CONSTRUCT ARRAY CHARACTERS MANUALLY
+
+                string sessionRefreshTokenSerialised;
+
+                string characterAttributesSerialised;
+                string characterWeaponsSerialised, characterArmourSerialised, characterJewellerySerialised;
+                string characterStateSerialised;
+
+                string armouryWeaponsSerialised, armouryArmourSerialised, armouryJewellerySerialised;
+
+                JsonSerializer serialiser = new JsonSerializer();
+                using (StringWriter sw = new StringWriter())
+                {
+                    using (JsonWriter writer = new JsonTextWriter(sw))
+                    {
+                        serialiser.Serialize(writer, sessionRefreshToken);
+                        sessionRefreshTokenSerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+
+
+                        serialiser.Serialize(writer, characterAttributes);
+                        characterAttributesSerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+
+                        serialiser.Serialize(writer, characterWeapons);
+                        characterWeaponsSerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+                        serialiser.Serialize(writer, characterArmour);
+                        characterArmourSerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+                        serialiser.Serialize(writer, characterJewellery);
+                        characterJewellerySerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+
+                        serialiser.Serialize(writer, characterState);
+                        characterStateSerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+
+
+                        serialiser.Serialize(writer, armouryWeapons);
+                        armouryWeaponsSerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+                        serialiser.Serialize(writer, armouryArmour);
+                        armouryArmourSerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+                        serialiser.Serialize(writer, armouryJewellery);
+                        armouryJewellerySerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+                    }
+                }
+                serialiser = null;
+
+                var grasslandFilePath = Path.Combine(_env.ContentRootPath, "assets", "grasslandmap1980.json");
+                string grasslandMapJson = await File.ReadAllTextAsync(grasslandFilePath);
+
                 using (var transaction = await _dbContext.Database.BeginTransactionAsync())
                 {
                     try
                     {
-                        var userName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower();
+                        //var userName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower();
                         var user = new t_User()
                         {
-                            user_name = userName
+                            user_name = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
                         };
                         await _dbContext.AddAsync(user);
-                        await _dbContext.SaveChangesAsync();
-
-
-                        var refreshToken = new RefreshToken()
-                        {
-                            Token = "null",
-                            Expires = DateTimeOffset.MinValue,
-                            Created = DateTimeOffset.MinValue
-                        };
-                        var serialisedRefreshToken = JsonConvert.SerializeObject(refreshToken);
+                        await _dbContext.SaveChangesAsync();  //save changes generate auto-incremement (integer) user_id
                         var session = new t_Session()
                         {
                             session_loggedin = DateTimeOffset.MinValue,
                             session_loggedout = DateTimeOffset.MinValue,
-                            refreshtoken = serialisedRefreshToken,
+                            refreshtoken = sessionRefreshTokenSerialised,
                             fk_user_id = user.user_id
                         };
-                        await _dbContext.AddAsync(session);
-
-                        var grasslandFilePath = Path.Combine(_env.ContentRootPath, "assets", "grasslandmap1980.json");
-                        string grasslandMapJson = await File.ReadAllTextAsync(grasslandFilePath);
 
                         var kingdom = new t_Kingdom()
                         {
@@ -495,84 +627,24 @@ namespace MM_API.Services
                             kingdom_map = grasslandMapJson,
 
                         };
-                        await _dbContext.AddAsync(kingdom);
 
-                        SharedGameFramework.Game.Character.Attribute.Attribute[] attributes =
-                        [
-                           new CharacterLevel { Level = 1 },
-                           new Constitution { Level = 50 },
-                           new Defence { Level = 1 },
-                           new Luck{ Level = 1 },
-                           new Stamina{ Level = 1 },
-                           new Strength{ Level = 1 }
-                        ];
-                        CharacterSheet characterSheet = new CharacterSheet() { AttributeArray = attributes };
-
-                        State state = new State()
-                        {
-                            character_cooldown = 0,
-                            character_died = DateTimeOffset.MinValue,
-                            character_isactive = true,
-                            character_isalive = true,
-                            character_iscooldown = false
-                        };
-                        CharacterState characterState = new CharacterState() { State = state };
-
-                        CharacterInventory characterInventory = new CharacterInventory()
-                        {
-                            WeaponArray =
-                            [
-                                ],
-                            ArmourArray =
-                            [
-                                new Torso {
-                                    Name = "Sheep's-wool Woven Shirt",
-                                    ArmourTier = 1,
-                                    DefenceRating = 2
-                                },
-                                new Legs
-                                {
-                                    Name = "Leather Chaps",
-                                    ArmourTier = 1,
-                                    DefenceRating = 5
-                                },
-                                new Feet
-                                {
-                                    Name = "Leather Sandals",
-                                    ArmourTier = 1,
-                                    DefenceRating = 2
-                                }
-                                ],
-                            JewelleryArray =
-                            [
-                                new Ring {
-                                    JewelleryTier = 1,
-                                    Name = "Wedding Ring",
-                                    ConstitutionBoon = 5,
-                                    LuckBoon = 1,
-                                    StaminaBoon = 1
-                                }
-                                ],
-                        };
                         var character = new t_Character()
                         {
                             character_name = "null",
                             fk_user_id = user.user_id,
 
-                            character_weapons = characterInventory.WeaponArray,//JsonConvert.SerializeObject(characterInventory), //serialising empty string? be careful when adding into this
-                            character_armour = characterInventory.ArmourArray,
-                            character_jewellery = characterInventory.JewelleryArray,
+                            character_weapons = characterWeaponsSerialised,
+                            character_armour = characterArmourSerialised,
+                            character_jewellery = characterJewellerySerialised,
 
-                            character_sheet = characterSheet.AttributeArray,//JsonConvert.SerializeObject(characterSheet),
-                            character_state = characterState.State//JsonConvert.SerializeObject(characterState),
+                            character_attributes = characterAttributesSerialised,
+                            character_state = characterStateSerialised
                         };
-                        await _dbContext.AddAsync(character);
 
                         var soupkitchen = new t_Soupkitchen()
                         {
                             fk_user_id = user.user_id,
                         };
-                        await _dbContext.AddAsync(soupkitchen);
 
                         var treasury = new t_Treasury()
                         {
@@ -582,43 +654,30 @@ namespace MM_API.Services
 
                             fk_user_id = user.user_id
                         };
-                        await _dbContext.AddAsync(treasury);
-
-                        ArmouryInventory armouryInventory = new ArmouryInventory() 
-                        {
-                            WeaponArray =
-                            [
-                                new Sword 
-                                {
-                                    Name = "Iron Sword",
-                                    DamageRating = 10,
-                                    Unique = false
-                                },
-                                ],
-                            ArmourArray = 
-                            [
-                                ],
-                            JewelleryArray = 
-                            [
-
-                                ],
-                        };
 
                         var armoury = new t_Armoury()
                         {
                             fk_user_id = user.user_id,
 
-                            character_weapons = armouryInventory.WeaponArray,
-                            character_armour = armouryInventory.ArmourArray,
-                            character_jewellery = armouryInventory.JewelleryArray
+                            armoury_weapons = armouryWeaponsSerialised,
+                            armoury_armour = armouryArmourSerialised,
+                            armoury_jewellery = armouryJewellerySerialised
+
                         };
 
+
+                        await _dbContext.AddAsync(session);
+                        await _dbContext.AddAsync(kingdom);
+                        await _dbContext.AddAsync(treasury);
                         await _dbContext.AddAsync(armoury);
+                        await _dbContext.AddAsync(character);
+                        await _dbContext.AddAsync(soupkitchen);
+
 
                         var identityUser = new ApplicationUser()
                         {
                             Id = Guid.NewGuid().ToString(),
-                            UserName = userName,
+                            UserName = user.user_name,
                             Email = registrationPayload.Email,
                             CustomUserId = user.user_id,
                         };
@@ -629,12 +688,12 @@ namespace MM_API.Services
 
                         return new RegistrationResponse()
                         {
-                            Username = userName,
+                            Username = user.user_name,
                         };
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back");
+                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back: {ex.Message}");
                         await transaction.RollbackAsync();
                     }
                 }
@@ -760,12 +819,19 @@ namespace MM_API.Services
             return null;
         }
 
+        //REVISIT THIS METHOD... NEEDS CHECKS ADDED
         public async Task<IRefreshTokenResponse> RefreshTokenAsync(RefreshTokenPayload refreshTokenPayload)
         {
             try
             {
+                //check if payload token == t_session token - never trust client/payload token
+
                 if (refreshTokenPayload.RefreshToken.Expires <= DateTimeOffset.UtcNow.UtcDateTime)
                     return new RefreshTokenResponse() { AuthToken = "null", RefreshToken = new RefreshToken() { Token = "expired", Created = DateTimeOffset.MinValue, Expires = DateTimeOffset.MinValue } };
+
+
+                //check if token is expired
+                //THEN...
 
                 var principle = GetTokenPrinciple(refreshTokenPayload.AuthToken);
 
@@ -889,6 +955,86 @@ namespace MM_API.Services
     }
 }
 #endregion
+
+//    CharacterState characterState = new CharacterState()
+//    {
+//        State = new State()
+//        {
+//            character_cooldown = 0,
+//            character_died = DateTimeOffset.MinValue,
+//            character_isactive = true,
+//            character_isalive = true,
+//            character_iscooldown = false
+//        }
+//};
+//CharacterSheet characterSheet = new CharacterSheet()
+//{
+//    AttributeList = new List<BaseAttribute>
+//            {
+//                new CharacterLevel { Level = 1 },
+//                new Constitution { Level = 50 },
+//                new Defence { Level = 1 },
+//                new Luck{ Level = 1 },
+//                new Stamina{ Level = 1 },
+//                new Strength{ Level = 1 }
+//            }
+//};
+//CharacterInventory characterInventory = new CharacterInventory()
+//{
+//    WeaponList = new List<BaseWeapon>
+//    {
+
+//    },
+//    ArmourList = new List<BaseArmour>
+//            {
+//                new Torso {
+//                    Name = "Sheep's-wool Woven Shirt",
+//                    ArmourTier = 1,
+//                    DefenceRating = 2
+//                },
+//                new Legs
+//                {
+//                    Name = "Leather Chaps",
+//                    ArmourTier = 1,
+//                    DefenceRating = 5
+//                },
+//                new Feet
+//                {
+//                    Name = "Leather Sandals",
+//                    ArmourTier = 1,
+//                    DefenceRating = 2
+//                }
+//            },
+//    JewelleryList = new List<BaseJewellery>
+//            {
+//                new Ring
+//                {
+//                    JewelleryTier = 1,
+//                    Name = "Wedding Ring",
+//                    ConstitutionBoon = 5,
+//                    LuckBoon = 1,
+//                    StaminaBoon = 1
+//                }
+//            }
+//};
+//EquipmentInventory armouryInventory = new EquipmentInventory()
+//{
+//    WeaponList = new List<BaseWeapon>
+//    {
+//        new Sword
+//        {
+//            Name = "Iron Sword",
+//            DamageRating = 10,
+//            Unique = false
+//        }
+//    },
+//    ArmourList = new List<BaseArmour>
+//    {
+//    },
+//    JewelleryList = new List<BaseJewellery>
+//    {
+//    }
+//};
 
 #region Legacy Code
 

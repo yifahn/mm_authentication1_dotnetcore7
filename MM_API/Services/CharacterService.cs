@@ -19,6 +19,11 @@ using SharedGameFramework.Game.Character;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SharedGameFramework.Game.Armoury.Equipment.Weapon.Sword;
+using SharedGameFramework.Game.Armoury;
+using System.Collections.Generic;
+using Npgsql.Internal;
+using System.Reflection.PortableExecutable;
 
 namespace MM_API.Services
 {
@@ -67,8 +72,8 @@ namespace MM_API.Services
                     CharacterName = character.character_name,
                     CharacterWeapons = JsonConvert.SerializeObject(character.character_weapons),
                     CharacterArmour = JsonConvert.SerializeObject(character.character_armour),
-                    CharacterJewellery = JsonConvert.SerializeObject(character.character_jewellery),
-                    CharacterSheet = JsonConvert.SerializeObject(character.character_sheet),
+                    CharacterJewellery = character.character_jewellery,
+                    CharacterSheet = character.character_attributes,
                     CharacterState = JsonConvert.SerializeObject(character.character_state)
                 };
             }
@@ -90,65 +95,171 @@ namespace MM_API.Services
                 string[] equipmentTypes = inventoryUpdatePayload.EquipmentTypes;
                 int equipmentAddOrRemove = inventoryUpdatePayload.EquipmentAddOrRemove;
 
-               // List<IDeserialisable> equipmentList = new List<IDeserialisable>();
+                List<IDeserialisable> equipmentPiece = new List<IDeserialisable>();
 
-                if (equipmentAddOrRemove == 1)//should be 0 //de-equip/remove from character, add to armoury
+                EquipmentInventory characterInventory = new EquipmentInventory();
+                EquipmentInventory armouryInventory = new EquipmentInventory();
+
+                t_Character character = await _dbContext.t_character.FirstAsync(u => u.fk_user_id == user.CustomUserId);
+                t_Armoury armoury = await _dbContext.t_armoury.FirstAsync(u => u.fk_user_id == user.CustomUserId);
+
+                //deserialise user inventories
+                JsonSerializer serialiser = new JsonSerializer();
+                serialiser.Converters.Add(new SerialisationSupport());
+                ///character inventory
+                using (StringReader sr = new StringReader(character.character_weapons))
                 {
-                    t_Character character = await _dbContext.t_character.FirstAsync(u => u.fk_user_id == user.CustomUserId);
-
-                    for (int i = 0; i < equipmentIdNums.Length; i++)
+                    using (JsonReader reader = new JsonTextReader(sr))
                     {
+                       characterInventory.WeaponList = serialiser.Deserialize<BaseWeapon[]>(reader).ToList();
+                    }
+                }
+                using (StringReader sr = new StringReader(character.character_armour))
+                {
+                    using (JsonReader reader = new JsonTextReader(sr))
+                    {
+                        characterInventory.ArmourList = serialiser.Deserialize<BaseArmour[]>(reader).ToList();
+                    }
+                }
+                using (StringReader sr = new StringReader(character.character_jewellery))
+                {
+                    using (JsonReader reader = new JsonTextReader(sr))
+                    {
+                       characterInventory.JewelleryList = serialiser.Deserialize<BaseJewellery[]>(reader).ToList();
+                    }
+                }
+                ///armoury inventory
+                using (StringReader sr = new StringReader(armoury.armoury_weapons))
+                {
+                    using (JsonReader reader = new JsonTextReader(sr))
+                    {
+                        armouryInventory.WeaponList = serialiser.Deserialize<BaseWeapon[]>(reader).ToList();
+                    }
+                }
+                using (StringReader sr = new StringReader(armoury.armoury_armour))
+                {
+                    using (JsonReader reader = new JsonTextReader(sr))
+                    {
+                        armouryInventory.ArmourList = serialiser.Deserialize<BaseArmour[]>(reader).ToList();
+                    }
+                }
+                using (StringReader sr = new StringReader(armoury.armoury_jewellery))
+                {
+                    using (JsonReader reader = new JsonTextReader(sr))
+                    {
+                        armouryInventory.JewelleryList = serialiser.Deserialize<BaseJewellery[]>(reader).ToList();
+                    }
+                }
 
-                        IDeserialisable equipmentPiece = null;
 
-                        switch (equipmentTypes[i])
+                for (int i = 0; i < equipmentIdNums.Length; i++)
+                {
+                    string equipmentId = equipmentIdNums[i];
+                    string equipmentType = equipmentTypes[i];
+
+                    if (equipmentAddOrRemove == 0) // move to armoury
+                    {
+                        switch (equipmentType)
                         {
                             case "Weapon":
-                                equipmentPiece = character.character_weapons
-                                    .First(e => e.LocalId == equipmentIdNums[i]);
+                                var weaponToMove = characterInventory.WeaponList
+                                    .FirstOrDefault(w => w.LocalId == equipmentId);
+                                if (weaponToMove != null)
+                                {
+                                    // Remove from character's inventory
+                                    characterInventory.WeaponList.Remove(weaponToMove);
+                                    // Add to armoury inventory
+                                    armouryInventory.WeaponList.Add(weaponToMove);
+                                }
                                 break;
+
                             case "Armour":
-                                equipmentPiece = character.character_armour
-                                    .First(e => e.LocalId == equipmentIdNums[i]);
+                                var armourToMove = characterInventory.ArmourList
+                                    .FirstOrDefault(a => a.LocalId == equipmentId);
+                                if (armourToMove != null)
+                                {
+                                    // Remove from character's inventory
+                                    characterInventory.ArmourList.Remove(armourToMove);
+                                    // Add to armoury inventory
+                                    armouryInventory.ArmourList.Add(armourToMove);
+                                }
                                 break;
+
                             case "Jewellery":
-                                equipmentPiece = character.character_jewellery
-                                     .First(e => e.LocalId == equipmentIdNums[i]);
+                                var jewelleryToMove = characterInventory.JewelleryList
+                                    .FirstOrDefault(j => j.LocalId == equipmentId);
+                                if (jewelleryToMove != null)
+                                {
+                                    // Remove from character's inventory
+                                    characterInventory.JewelleryList.Remove(jewelleryToMove);
+                                    // Add to armoury inventory
+                                    armouryInventory.JewelleryList.Add(jewelleryToMove);
+                                }
+                                break;
+                        }
+                    }
+                    else if (equipmentAddOrRemove == 1) // move to character
+                    {
+                        switch (equipmentType)
+                        {
+                            case "Weapon":
+                                var weaponToMove = armouryInventory.WeaponList
+                                    .FirstOrDefault(w => w.LocalId == equipmentId);
+                                if (weaponToMove != null)
+                                {
+                                    // Remove from armoury inventory
+                                    armouryInventory.WeaponList.Remove(weaponToMove);
+                                    // Add to character's inventory
+                                    characterInventory.WeaponList.Add(weaponToMove);
+                                }
+                                break;
+
+                            case "Armour":
+                                var armourToMove = armouryInventory.ArmourList
+                                    .FirstOrDefault(a => a.LocalId == equipmentId);
+                                if (armourToMove != null)
+                                {
+                                    // Remove from armoury inventory
+                                    armouryInventory.ArmourList.Remove(armourToMove);
+                                    // Add to character's inventory
+                                    characterInventory.ArmourList.Add(armourToMove);
+                                }
+                                break;
+
+                            case "Jewellery":
+                                var jewelleryToMove = armouryInventory.JewelleryList
+                                    .FirstOrDefault(j => j.LocalId == equipmentId);
+                                if (jewelleryToMove != null)
+                                {
+                                    // Remove from armoury inventory
+                                    armouryInventory.JewelleryList.Remove(jewelleryToMove);
+                                    // Add to character's inventory
+                                    characterInventory.JewelleryList.Add(jewelleryToMove);
+                                }
                                 break;
                         }
                     }
                 }
-                //else if ()
-                //{
 
-                //}
+                // After the move operations, re-serialize the updated inventories back into strings
+                string updatedCharacterWeapons = JsonConvert.SerializeObject(characterInventory.WeaponList);
+                string updatedCharacterArmour = JsonConvert.SerializeObject(characterInventory.ArmourList);
+                string updatedCharacterJewellery = JsonConvert.SerializeObject(characterInventory.JewelleryList);
 
+                string updatedArmouryWeapons = JsonConvert.SerializeObject(armouryInventory.WeaponList);
+                string updatedArmouryArmour = JsonConvert.SerializeObject(armouryInventory.ArmourList);
+                string updatedArmouryJewellery = JsonConvert.SerializeObject(armouryInventory.JewelleryList);
 
+                // Store the updated inventories back to the database
+                character.character_weapons = updatedCharacterWeapons;
+                character.character_armour = updatedCharacterArmour;
+                character.character_jewellery = updatedCharacterJewellery;
 
-                //t_Character character = await _dbContext.t_character.FirstAsync(c => c.fk_user_id == user.CustomUserId);
-                //t_Armoury armoury = await _dbContext.t_armoury.FirstAsync(a => a.fk_user_id == user.CustomUserId);
+                armoury.armoury_weapons = updatedArmouryWeapons;
+                armoury.armoury_armour = updatedArmouryArmour;
+                armoury.armoury_jewellery = updatedArmouryJewellery;
 
-                //JObject armouryInventoryJObject = JObject.Parse(armoury.armoury_inventory);
-                //JArray armouryInventoryArray = (JArray)armouryInventoryJObject["Equipment"];
-
-                //JObject characterInventoryJObject = JObject.Parse(character.character_inventory);
-                //JArray characterInventoryArray = (JArray)characterInventoryJObject["Equipment"];
-
-                //List<IDeserialisable> deserialisedObjectList1 = new List<IDeserialisable>();
-                //List<IDeserialisable> deserialisedObjectList2 = new List<IDeserialisable>();
-
-                //foreach (JObject item in armouryInventoryArray)
-                //{
-                //    deserialisedObjectList1.Add(JsonConvert.DeserializeObject<IDeserialisable>(item.ToString(), new SerialisationSupport()));
-                //}
-                //foreach (JObject item in characterInventoryArray)
-                //{
-                //    deserialisedObjectList2.Add(JsonConvert.DeserializeObject<IDeserialisable>(item.ToString(), new SerialisationSupport()));
-                //}
-
-
-
-
+                await _dbContext.SaveChangesAsync();
 
 
                 return new InventoryUpdateResponse
@@ -161,6 +272,7 @@ namespace MM_API.Services
             }
             return null;
         }
+       
         public async Task<ISheetUpdateResponse> UpdateCharacterSheet(SheetUpdatePayload sheetUpdatePayload)
         {
             try
@@ -196,7 +308,106 @@ namespace MM_API.Services
     }
 }
 #endregion
+//        switch ()
+//{
+//    case "Weapon":
 
+//        break;
+//    case "Armour":
+
+//        break;
+//    case "Jewellery":
+
+//        break;
+//}
+//string characterWeaponsSerialised, characterArmourSerialised, characterJewellerySerialised;
+//string armouryWeaponsSerialised, armouryArmourSerialised, armouryJewellerySerialised;
+//for (int i = 0; i < equipmentIdNums.Length; i++)
+//{
+//}
+//if (equipmentAddOrRemove == 0)//move to armoury
+//{
+//}
+//else if (equipmentAddOrRemove == 1)//move to character
+//{
+
+//}
+//switch (equipmentTypes[i])
+//{
+//    case "Weapon":
+//        serialiser.Deserialize(writer, characterWeapons);
+//        characterWeaponsSerialised = sw.ToString();
+//        sw.GetStringBuilder().Clear();
+//        break;
+//    case "Armour":
+
+//        break;
+//    case "Jewellery":
+
+//        break;
+//}
+
+//        serialiser.Serialize(writer, characterWeapons);
+//        characterWeaponsSerialised = sw.ToString();
+//        sw.GetStringBuilder().Clear();
+//        serialiser.Serialize(writer, characterArmour);
+//        characterArmourSerialised = sw.ToString();
+//        sw.GetStringBuilder().Clear();
+//        serialiser.Serialize(writer, characterJewellery);
+//        characterJewellerySerialised = sw.ToString();
+//        sw.GetStringBuilder().Clear();
+
+
+//        serialiser.Serialize(writer, armouryWeapons);
+//        armouryWeaponsSerialised = sw.ToString();
+//        sw.GetStringBuilder().Clear();
+//        serialiser.Serialize(writer, armouryArmour);
+//        armouryArmourSerialised = sw.ToString();
+//        sw.GetStringBuilder().Clear();
+//        serialiser.Serialize(writer, armouryJewellery);
+//        armouryJewellerySerialised = sw.ToString();
+//        sw.GetStringBuilder().Clear();
+//    }
+//}
+//serialiser = null;
+
+
+//var result = JsonConvert.DeserializeObject<IDeserialisable>(character.character_weapons,new SerialisationSupport());
+
+//for (int i = 0; i < equipmentIdNums.Length; i++)
+//{
+//    switch (equipmentTypes[i])
+//    {
+//        case "Weapon":
+//            equipmentPiece.Add(character.character_weapons
+//                .First(e => e.LocalId == equipmentIdNums[i]));
+//            break;
+//        case "Armour":
+//            equipmentPiece.Add(character.character_armour
+//                .First(e => e.LocalId == equipmentIdNums[i]));
+//            break;
+//        case "Jewellery":
+//            equipmentPiece.Add(character.character_jewellery
+//                 .First(e => e.LocalId == equipmentIdNums[i]));
+//            break;
+//    }
+//}
+//for (int i = 0; i < equipmentIdNums.Length; i++)
+//{
+//    switch (equipmentTypes[i])
+//    {
+//        case "Weapon":
+//            armoury.armoury_weapons .<BaseWeapon>equipmentPiece(i);
+//            break;
+//        case "Armour":
+
+//            break;
+//        case "Jewellery":
+
+//            break;
+//    }
+
+//}
 //var deserialisableList = JsonConvert.DeserializeObject<IDeserialisable>(equipmentArray.ToString(), new SerialisationSupport()) as List<IDeserialisable>;
 
 

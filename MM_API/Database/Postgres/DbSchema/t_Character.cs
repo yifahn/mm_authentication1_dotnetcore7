@@ -14,31 +14,42 @@ namespace MM_API.Database.Postgres.DbSchema
         [Key]
         public int character_id { get; set; }
         public string character_name { get; set; }
-
         public int fk_user_id { get; set; }
-
         [ForeignKey("fk_user_id")]
         public t_User User { get; set; }
 
 
         [Column(TypeName = "jsonb")]
-        public SharedGameFramework.Game.Character.Attribute.Attribute[] character_sheet { get; set; }
+        public string character_attributes { get; set; }
+
+        [Column(TypeName = "jsonb")]
+        public string character_state { get; set; }
 
 
         [Column(TypeName = "jsonb")]
-        public BaseWeapon[] character_weapons { get; set; } 
+        public string character_weapons { get; set; }
 
         [Column(TypeName = "jsonb")]
-        public BaseArmour[] character_armour { get; set; }
+        public string character_armour { get; set; }
 
         [Column(TypeName = "jsonb")]
-        public BaseJewellery[] character_jewellery { get; set; }
-
-
-        [Column(TypeName = "jsonb")]
-        public State character_state { get; set; }
+        public string character_jewellery { get; set; }
     }
-}        
+}
+
+//[Column(TypeName = "jsonb")]
+//public List<BaseAttribute> character_attributes { get; set; }
+
+
+//[Column(TypeName = "jsonb")]
+//public List<BaseWeapon> character_weapons { get; set; }
+
+//[Column(TypeName = "jsonb")]
+//public List<BaseArmour> character_armour { get; set; }
+
+//[Column(TypeName = "jsonb")]
+//public List<BaseJewellery> character_jewellery { get; set; }
+
 
 //VALUES OF EQUIPMENT ARRAY IS NULL IN CHARACTER SERVICE CLASS IM TESTING? MY THOUGHTS ARE BECAUSE THIS IS ABSTRACT CLASS - CANNOT INSTANTIATE CONCRETE CLASS OBJECT, BUT ATTRIBUTE ISN'T NULL? investigate further...
 
@@ -59,7 +70,7 @@ namespace MM_API.Database.Postgres.DbSchema
 //public CharacterInventory character_inventory { get; set; } //= new CharacterInventory();
 
 //[Column(TypeName = "jsonb")]
-//public CharacterSheet character_sheet { get; set; }
+//public CharacterSheet character_attributes { get; set; }
 
 //[Column(TypeName = "jsonb")]
 //public CharacterState character_state { get; set; }

@@ -251,12 +251,12 @@ namespace MM_API.Services
                 string sqlQuery = string.Empty;
                 NpgsqlParameter[] parameters;
 
-                if (result is SharedGameFramework.Game.Character.Attribute.Attribute resultAttribute)
+                if (result is SharedGameFramework.Game.Character.Attribute.BaseAttribute resultAttribute)
                 {
                     string attributeType = resultAttribute.AttributeType;
                     int level = resultAttribute.Level;
 
-                    sqlQuery =  @"UPDATE t_character SET character_sheet = jsonb_set(character_sheet::jsonb,'{AttributeArray}',(SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, '{Level}', ((attr->> 'Level')::int + @Increment)::text::jsonb) ELSE attr END) FROM jsonb_array_elements(character_sheet->'AttributeArray') AS attr)) WHERE fk_user_id = @UserId;";
+                    sqlQuery =  @"UPDATE t_character SET character_attributes = jsonb_set(character_attributes::jsonb,'{AttributeArray}',(SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, '{Level}', ((attr->> 'Level')::int + @Increment)::text::jsonb) ELSE attr END) FROM jsonb_array_elements(character_attributes->'AttributeArray') AS attr)) WHERE fk_user_id = @UserId;";
 
                     parameters =
                     [
@@ -325,12 +325,12 @@ namespace MM_API.Services
 // LEARNING IS A HEADACHE...
 //    string sqlQuery = string.Empty;
 //    NpgsqlParameter[] parameters;
-//                if (result is SharedGameFramework.Game.Character.Attribute.Attribute resultAttribute)
+//                if (result is SharedGameFramework.Game.Character.BaseAttribute.BaseAttribute resultAttribute)
 //                {
 //                    string attributeType = resultAttribute.AttributeType;
 //    int level = resultAttribute.Level;
 
-//    sqlQuery = $@"UPDATE t_character SET character_sheet = jsonb_set(character_sheet::jsonb,'{{AttributeArray}}',(SELECT jsonb_agg(CASE WHEN attr->>'AttributeType' = @AttributeType THEN jsonb_set(attr, '{{Level}}', (attr->>'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_sheet->'AttributeArray') AS attr), true ) WHERE character_sheet @> jsonb_build_object('AttributeArray', jsonb_build_array(jsonb_build_object('AttributeType', @AttributeType)));";
+//    sqlQuery = $@"UPDATE t_character SET character_attributes = jsonb_set(character_attributes::jsonb,'{{AttributeArray}}',(SELECT jsonb_agg(CASE WHEN attr->>'AttributeType' = @AttributeType THEN jsonb_set(attr, '{{Level}}', (attr->>'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_attributes->'AttributeArray') AS attr), true ) WHERE character_attributes @> jsonb_build_object('AttributeArray', jsonb_build_array(jsonb_build_object('AttributeType', @AttributeType)));";
 //                    parameters =
 //                    [
 //                        new NpgsqlParameter("@AttributeType", attributeType),
@@ -403,7 +403,7 @@ namespace MM_API.Services
 
 
 //LEARNING IS A HEADACHE ... NOTEPAD STUFF
-//(character_sheet, '{AttributeArray}', (SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, '{Level}', (attr->> 'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_sheet->'AttributeArray') AS attr)
+//(character_attributes, '{AttributeArray}', (SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, '{Level}', (attr->> 'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_attributes->'AttributeArray') AS attr)
 
 //"{""Equipment"": [{""ServerId"": ""b41c554b-a65a-4327-8f48-f5e5304a8bc3"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}]}"
 //"{""Equipment"": [{""ServerId"": ""b41c554b-a65a-4327-8f48-f5e5304a8bc3"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}]}"
@@ -416,7 +416,7 @@ namespace MM_API.Services
 
 
 //UPDATE t_armoury SET armoury_inventory = jsonb_set(armoury_inventory::jsonb,'Equipment', (armoury_inventory->'Equipment')::jsonb || @NewEquipment::jsonb) WHERE fk_user_id = @UserId;
-//UPDATE t_character SET character_sheet = jsonb_set(character_sheet,'AttributeArray',(SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, 'Level', (attr->> 'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_sheet->'AttributeArray') AS attr), true ) WHERE character_sheet @> jsonb_build_object('AttributeArray', jsonb_build_array(jsonb_build_object('AttributeType', @AttributeType)));
+//UPDATE t_character SET character_attributes = jsonb_set(character_attributes,'AttributeArray',(SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, 'Level', (attr->> 'Level')::int + @Increment || '::jsonb') ELSE attr END) FROM jsonb_array_elements(character_attributes->'AttributeArray') AS attr), true ) WHERE character_attributes @> jsonb_build_object('AttributeArray', jsonb_build_array(jsonb_build_object('AttributeType', @AttributeType)));
 
 //"{""Equipment"": [{""ServerId"": ""866e2bec-818c-426f-b3db-f6d5d6d9e935"", ""Name"": ""Iron Sword"", ""Unique"": false, ""WeaponType"": ""Sword"", ""DamageRating"": 10, ""EquipmentType"": ""BaseWeapon""}]}"
 

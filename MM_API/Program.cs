@@ -32,15 +32,21 @@ namespace MM_API
 
             var settings = new JsonSerializerSettings();
             settings.Converters.Add(new SerialisationSupport());
+
+
+
             //NpgsqlConnection.GlobalTypeMapper.EnableDynamicJson();
 
             // Npgsql JSON.NET Configuration (Use Newtonsoft.Json)
+
+
             var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("Db"));
-            dataSourceBuilder.UseJsonNet(settings); // Switch to Newtonsoft.Json
+            dataSourceBuilder.UseJsonNet(settings); //settings // Switch to Newtonsoft.Json
             var dataSource = dataSourceBuilder.Build();
 
             builder.Services.AddDbContext<MM_DbContext>(options =>
             options.UseNpgsql(dataSource));
+
             //// POSTGRESQL CONNECTION
             //builder.Services.AddDbContext<MM_DbContext>(options =>
             //    options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
@@ -115,6 +121,7 @@ namespace MM_API
             builder.Services.AddControllers().AddNewtonsoftJson(options =>
             {
                 options.SerializerSettings.Converters.Add(new SerialisationSupport());
+
             });
 
             // ADD SWASHBUCKLE/SWAGGER
