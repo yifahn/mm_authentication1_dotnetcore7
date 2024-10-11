@@ -40,17 +40,17 @@ namespace MM_API
             // Npgsql JSON.NET Configuration (Use Newtonsoft.Json)
 
 
-            var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("Db"));
-            dataSourceBuilder.UseJsonNet(settings); //settings // Switch to Newtonsoft.Json
-            var dataSource = dataSourceBuilder.Build();
+            //var dataSourceBuilder = new NpgsqlDataSourceBuilder(builder.Configuration.GetConnectionString("Db"));
+            //dataSourceBuilder.UseJsonNet(settings); //settings // Switch to Newtonsoft.Json
+            //var dataSource = dataSourceBuilder.Build();
 
-            builder.Services.AddDbContext<MM_DbContext>(options =>
-            options.UseNpgsql(dataSource));
+            //builder.Services.AddDbContext<MM_DbContext>(options =>
+            //options.UseNpgsql(dataSource));
 
             //// POSTGRESQL CONNECTION
-            //builder.Services.AddDbContext<MM_DbContext>(options =>
-            //    options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
-            //System.Diagnostics.Debug.WriteLine($"Connection String: {builder.Configuration.GetConnectionString("Db")}");
+            builder.Services.AddDbContext<MM_DbContext>(options =>
+                options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
+            System.Diagnostics.Debug.WriteLine($"Connection String: {builder.Configuration.GetConnectionString("Db")}");
 
 
             #region Authentication & Authorization
@@ -120,7 +120,7 @@ namespace MM_API
             // ADD CONTROLLERS
             builder.Services.AddControllers().AddNewtonsoftJson(options =>
             {
-                options.SerializerSettings.Converters.Add(new SerialisationSupport());
+                //options.SerializerSettings.Converters.Add(new SerialisationSupport());
 
             });
 

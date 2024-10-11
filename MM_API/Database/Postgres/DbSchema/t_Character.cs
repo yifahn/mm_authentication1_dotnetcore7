@@ -13,10 +13,11 @@ namespace MM_API.Database.Postgres.DbSchema
     {
         [Key]
         public int character_id { get; set; }
-        public string character_name { get; set; }
         public int fk_user_id { get; set; }
         [ForeignKey("fk_user_id")]
         public t_User User { get; set; }
+
+        public string character_name { get; set; }
 
 
         [Column(TypeName = "jsonb")]

@@ -22,7 +22,7 @@ using SharedNetworkFramework.Authentication.Register;
 using SharedNetworkFramework.Authentication.Login;
 using SharedNetworkFramework.Authentication.Logout;
 
-using SharedGameFramework.Game.Kingdom.Map.Node;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode;
 using SharedGameFramework.Game.Kingdom.Map;
 
 using SharedGameFramework.Game.Character;
@@ -55,6 +55,7 @@ using SharedGameFramework.Game.Armoury.Equipment.Jewellery.Ring;
 
 using System.Xml.Linq;
 using SharedGameFramework.Game.Armoury;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode.Grassland;
 
 namespace MM_API.Services
 {
@@ -463,14 +464,16 @@ namespace MM_API.Services
                     Created = DateTimeOffset.MinValue
                 };
 
-
                 State characterState = new State()
                 {
                     character_cooldown = 0,
                     character_died = DateTimeOffset.MinValue,
                     character_isactive = true,
                     character_isalive = true,
-                    character_iscooldown = false
+                    character_iscooldown = false,
+                    character_politicalpoints = 0,
+                    character_soup_numclaimtokens =0,
+                    character_soup_totalnumclaimed =0
                 };
                 BaseWeapon[] characterWeapons = [];
                 BaseArmour[] characterArmour =
@@ -550,6 +553,8 @@ namespace MM_API.Services
 
                 string sessionRefreshTokenSerialised;
 
+                //string grasslandMapSerialised;
+
                 string characterAttributesSerialised;
                 string characterWeaponsSerialised, characterArmourSerialised, characterJewellerySerialised;
                 string characterStateSerialised;
@@ -605,6 +610,7 @@ namespace MM_API.Services
                 {
                     try
                     {
+
                         //var userName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower();
                         var user = new t_User()
                         {
@@ -626,6 +632,18 @@ namespace MM_API.Services
                             fk_user_id = user.user_id,
                             kingdom_map = grasslandMapJson,
 
+                            kingdom_num_node_types = 
+                            [
+                                1980,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                                ]
                         };
 
                         var character = new t_Character()
@@ -638,7 +656,8 @@ namespace MM_API.Services
                             character_jewellery = characterJewellerySerialised,
 
                             character_attributes = characterAttributesSerialised,
-                            character_state = characterStateSerialised
+                            character_state = characterStateSerialised,
+
                         };
 
                         var soupkitchen = new t_Soupkitchen()

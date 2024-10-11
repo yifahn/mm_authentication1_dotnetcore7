@@ -15,29 +15,33 @@ using MM_API.Database.Postgres;
 using SharedNetworkFramework.Game.Kingdom.Map;
 
 using SharedGameFramework.Game.Kingdom.Map;
-using SharedGameFramework.Game.Kingdom.Map.Node;
-using SharedGameFramework.Game.Kingdom.Map.Node.Grassland;
-using SharedGameFramework.Game.Kingdom.Map.Node.TownCentre;
-using SharedGameFramework.Game.Kingdom.Map.Node.House;
-using SharedGameFramework.Game.Kingdom.Map.Node.Library;
-using SharedGameFramework.Game.Kingdom.Map.Node.Factory;
-using SharedGameFramework.Game.Kingdom.Map.Node.Road;
-using SharedGameFramework.Game.Kingdom.Map.Node.Blockade;
-using SharedGameFramework.Game.Kingdom.Map.Node.MTower;
-using SharedGameFramework.Game.Kingdom.Map.Node.Wonder;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode.Grassland;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode.TownCentre;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode.House;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode.Library;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode.Factory;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode.Road;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode.Blockade;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode.MTower;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode.Wonder;
 
 using Npgsql;
 
 using System.Reflection.Metadata.Ecma335;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using SharedNetworkFramework.Game.Kingdom;
+using SharedGameFramework.Game.Armoury.Equipment;
+using SharedGameFramework.Game;
+using System.Xml.Linq;
+using System.Diagnostics;
 
 namespace MM_API.Services
 {
     public interface IKingdomService
     {
         public Task<IKingdomLoadResponse> LoadKingdom();
-      /*  public Task<IMapLoadResponse> LoadMap();*///deprecate this for loadkingdom - on load, load all components - update individually
+        /*  public Task<IMapLoadResponse> LoadMap();*///deprecate this for loadkingdom - on load, load all components - update individually
         public Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload payload);
 
 
@@ -64,7 +68,7 @@ namespace MM_API.Services
             var loadKingdomResponse = new KingdomLoadResponse()
             {
                 KingdomName = kingdom.kingdom_name,
-                KingdomMap = kingdom.kingdom_map
+                // KingdomMap = kingdom.kingdom_map
             };
             return loadKingdomResponse;
         }
@@ -208,26 +212,165 @@ namespace MM_API.Services
                 var user = await _userManager.FindByIdAsync(userId);
                 int[] nodeIndexes = mapUpdatePayload.NodeIndexes;
                 int[] nodeTypes = mapUpdatePayload.NodeTypes;
-                if (nodeIndexes.Length == 1)
+
+                t_Kingdom kingdom = _dbContext.t_kingdom.FirstOrDefault(u => u.fk_user_id == user.CustomUserId);
+                t_Treasury treasury = _dbContext.t_treasury.FirstOrDefault(u => u.fk_user_id == user.CustomUserId);
+
+                Map map = new Map();
+
+                JsonSerializer serialiser = new JsonSerializer();
+
+                serialiser.Converters.Add(new SerialisationSupport());
+                using (StringReader sr = new StringReader(kingdom.kingdom_map))
                 {
-                    var sqlGenerationResult = GenerateMapUpdateSQL(nodeIndexes[0], nodeTypes[0], user.CustomUserId);
-                    await _dbContext.Database.ExecuteSqlRawAsync(sqlGenerationResult.Item1, sqlGenerationResult.Item2);
-                }
-                else if (nodeIndexes.Length > 1)
-                {
-                    var sqlGenerationResult = GenerateMapUpdateSQL(nodeIndexes, nodeTypes, user.CustomUserId);
-                    for (int i = 0; i < sqlGenerationResult.Item1.Length; i++)
+                    using (JsonReader reader = new JsonTextReader(sr))
                     {
-                        await _dbContext.Database.ExecuteSqlRawAsync(sqlGenerationResult.Item1[i], sqlGenerationResult.Item2[i]);
+                        map.NodeArray = serialiser.Deserialize<BaseNode[]>(reader);
                     }
                 }
+                serialiser.Converters.Clear();
+                //serialiser = null;
+
+                //check if building action violates game rules
+                List<BaseNode> nodesToRemove = new List<BaseNode>();
+                int coinRefund = 0;
+                int coinCostTotal = 0;
+                int[] totalNumBuildings = kingdom.kingdom_num_node_types;
+                for (int i = 0; i < nodeIndexes.Length; i++)
+                {
+                    //get refund amount from selling buildings
+                    nodesToRemove.Add(map.NodeArray[nodeIndexes[i]]);
+
+                    NodeTypeEnum nodeType1 = (NodeTypeEnum)map.NodeArray[nodeIndexes[i]].NodeType;
+                    NodeCostEnum nodeCost1 = GetNodeCost(nodeType1);
+                    coinRefund += (int)nodeCost1 / 2;
+
+                    //get total cost of new buildings
+                    NodeTypeEnum nodeType2 = (NodeTypeEnum)nodeTypes[i];
+                    NodeCostEnum nodeCost2 = GetNodeCost(nodeType2);
+                    coinCostTotal += (int)nodeCost2;
+
+                    //get total number of each nodetype after map update
+                    totalNumBuildings[(int)nodeType1]--;
+                    totalNumBuildings[(int)nodeType2]++;
+
+                    if (map.NodeArray[nodeIndexes[i]].NodeType != (int)NodeTypeEnum.Road && nodeTypes[i] == (int)NodeTypeEnum.Blockade) return null; //violates rule: cannot build build blockade on any nodetype except road
+                }
+                if (!MapService.ValidateBuildActionByNumOfBuildings(totalNumBuildings)) return null; //violates building restrictions by nodetype totals
+                if (treasury.treasury_coin + coinRefund < coinCostTotal) return null; //insufficient funds
+
+
+                for (int i = 0; i < nodeIndexes.Length; i++)
+                {
+                    map.NodeArray[nodeIndexes[i]] = nodeTypes[i] switch
+                    {
+                        0 => new Grassland
+                        {
+                            NodeIndex = nodeIndexes[i],
+                            NodeType = nodeTypes[i],
+                            NodeCost = (int)NodeCostEnum.Grassland,
+                            NodeLevel = 0
+                        },
+                        1 => new TownCentre
+                        {
+                            NodeIndex = nodeIndexes[i],
+                            NodeType = nodeTypes[i],
+                            NodeCost = (int)NodeCostEnum.Grassland,
+                            NodeLevel = 0
+                        },
+                        2 => new House
+                        {
+                            NodeIndex = nodeIndexes[i],
+                            NodeType = nodeTypes[i],
+                            NodeCost = (int)NodeCostEnum.House,
+                            NodeLevel = 0
+                        },
+                        3 => new Library
+                        {
+                            NodeIndex = nodeIndexes[i],
+                            NodeType = nodeTypes[i],
+                            NodeCost = (int)NodeCostEnum.Library,
+                            NodeLevel = 0
+                        },
+                        4 => new Factory
+                        {
+                            NodeIndex = nodeIndexes[i],
+                            NodeType = nodeTypes[i],
+                            NodeCost = (int)NodeCostEnum.Factory,
+                            NodeLevel = 0
+                        },
+                        5 => new Road
+                        {
+                            NodeIndex = nodeIndexes[i],
+                            NodeType = nodeTypes[i],
+                            NodeCost = (int)NodeCostEnum.Road,
+                            NodeLevel = 0
+                        },
+                        6 => new Blockade
+                        {
+                            NodeIndex = nodeIndexes[i],
+                            NodeType = nodeTypes[i],
+                            NodeCost = (int)NodeCostEnum.Blockade,
+                            NodeLevel = 0
+                        },
+                        7 => new MTower
+                        {
+                            NodeIndex = nodeIndexes[i],
+                            NodeType = nodeTypes[i],
+                            NodeCost = (int)NodeCostEnum.MTower,
+                            NodeLevel = 0
+                        },
+                        8 => new Wonder
+                        {
+                            NodeIndex = nodeIndexes[i],
+                            NodeType = nodeTypes[i],
+                            NodeCost = (int)NodeCostEnum.Wonder,
+                            NodeLevel = 0
+                        },
+
+                    };
+                }
+               
+                using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        string serialisedKingdomMap = string.Empty;
+
+                        using (StringWriter sw = new StringWriter())
+                        {
+                            using (JsonWriter writer = new JsonTextWriter(sw))
+                            {
+                                serialiser.Serialize(writer, map.NodeArray);
+                                serialisedKingdomMap = sw.ToString();
+                                sw.GetStringBuilder().Clear();
+                            }
+                        }
+
+                        kingdom.kingdom_map = serialisedKingdomMap;
+                        kingdom.kingdom_num_node_types = totalNumBuildings;
+                        _dbContext.SaveChanges();
+
+                        transaction.Commit();
+                    }
+
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back: {ex.Message}");
+                        await transaction.RollbackAsync();
+                        return null;
+                    }
+                }
+
+
                 return new MapUpdateResponse()
                 {
+                    Success = true
                 };
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Update map failed: {ex.Message}");
             }
             return new MapUpdateResponse()
             {
@@ -255,7 +398,7 @@ namespace MM_API.Services
             NpgsqlParameter[][] sqlParameterArray = new NpgsqlParameter[nodeTypeArray.Length][];
             for (int i = 0; i < nodeTypeArray.Length; i++)
             {
-           
+
                 sqlArray[i] = @"UPDATE t_kingdom SET kingdom_map = jsonb_set(kingdom_map, ARRAY['Nodes', @NodeIndex::text], jsonb_build_object('NodeCost', @NodeCost,'NodeType', @NodeType,'NodeIndex', @NodeIndex,'NodeLevel', @NodeLevel)::jsonb) WHERE fk_user_id = @UserId;";
                 sqlParameterArray[i] =
                 [
@@ -268,19 +411,74 @@ namespace MM_API.Services
             }
             return (sqlArray, sqlParameterArray);
         }
+        private NodeCostEnum GetNodeCost(NodeTypeEnum nodeType)
+        {
+            switch (nodeType)
+            {
+                case NodeTypeEnum.Grassland:
+                    return NodeCostEnum.Grassland;
+                case NodeTypeEnum.House:
+                    return NodeCostEnum.House;
+                case NodeTypeEnum.TownCentre:
+                    return NodeCostEnum.TownCentre;
+                case NodeTypeEnum.Library:
+                    return NodeCostEnum.Library;
+                case NodeTypeEnum.Factory:
+                    return NodeCostEnum.Factory;
+                case NodeTypeEnum.Road:
+                    return NodeCostEnum.Road;
+                case NodeTypeEnum.Blockade:
+                    return NodeCostEnum.Blockade;
+                case NodeTypeEnum.MTower:
+                    return NodeCostEnum.MTower;
+                case NodeTypeEnum.Wonder:
+                    return NodeCostEnum.Wonder;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(nodeType), $"Unknown NodeType: {nodeType}");
+            }
+        }
+
+        //if (nodeIndexes.Length == 1)
+        //{
+
+
+
+
+        //    //map update
+        //    var sqlGenerationResult = GenerateMapUpdateSQL(nodeIndexes[0], nodeTypes[0], user.CustomUserId);
+        //    await _dbContext.Database.ExecuteSqlRawAsync(sqlGenerationResult.Item1, sqlGenerationResult.Item2);
+        //}
+        //else if (nodeIndexes.Length > 1)
+        //{
+
+
+
+
+        //    //map update
+        //    var sqlGenerationResult = GenerateMapUpdateSQL(nodeIndexes, nodeTypes, user.CustomUserId);
+        //    for (int i = 0; i < sqlGenerationResult.Item1.Length; i++)
+        //    {
+        //        await _dbContext.Database.ExecuteSqlRawAsync(sqlGenerationResult.Item1[i], sqlGenerationResult.Item2[i]);
+        //    }
+        //}
+
+
+
+
+
         //chatgpt puke
         //public class NodeConverter : JsonConverter
         //{
         //    public override bool CanConvert(Type objectType)
         //    {
-        //        return typeof(Node).IsAssignableFrom(objectType);
+        //        return typeof(BaseNode).IsAssignableFrom(objectType);
         //    }
         //public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         //{
         //    JObject jsonObject = JObject.Load(reader);
         //    int nodeType = jsonObject["NodeType"].Value<int>();
 
-        //    Node node = nodeType switch
+        //    BaseNode node = nodeType switch
         //    {
         //        0 => new Grassland(),   // GL
         //        1 => new TownCentre(),  // TC

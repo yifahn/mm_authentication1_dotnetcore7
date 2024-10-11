@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Numerics;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -123,8 +122,8 @@ namespace MM_API.Migrations
                 {
                     character_id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    character_name = table.Column<string>(type: "text", nullable: false),
                     fk_user_id = table.Column<int>(type: "integer", nullable: false),
+                    character_name = table.Column<string>(type: "text", nullable: false),
                     character_attributes = table.Column<string>(type: "jsonb", nullable: false),
                     character_state = table.Column<string>(type: "jsonb", nullable: false),
                     character_weapons = table.Column<string>(type: "jsonb", nullable: false),
@@ -150,7 +149,8 @@ namespace MM_API.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     kingdom_name = table.Column<string>(type: "text", nullable: false),
                     fk_user_id = table.Column<int>(type: "integer", nullable: false),
-                    kingdom_map = table.Column<string>(type: "jsonb", nullable: false)
+                    kingdom_map = table.Column<string>(type: "jsonb", nullable: false),
+                    kingdom_num_node_types = table.Column<int[]>(type: "integer[]", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -211,7 +211,7 @@ namespace MM_API.Migrations
                     treasury_id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     fk_user_id = table.Column<int>(type: "integer", nullable: false),
-                    treasury_coin = table.Column<BigInteger>(type: "numeric", nullable: false),
+                    treasury_coin = table.Column<int>(type: "integer", nullable: false),
                     treasury_gainrate = table.Column<double>(type: "double precision", nullable: false),
                     treasury_multiplier = table.Column<double>(type: "double precision", nullable: false)
                 },
@@ -328,7 +328,7 @@ namespace MM_API.Migrations
             migrationBuilder.InsertData(
                 table: "AspNetUsers",
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "CustomUserId", "Email", "EmailConfirmed", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "81c97c6d-f7ef-4497-9806-b7e87a90c077", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEFR0S3EOLx7v+nu0WTMG5IHsdazRWXOIf95kKSKWioBhK6HLN4H/wy8Zn3s1je1fHQ==", null, false, "fc0c4971-8a12-4c2b-8f79-6fc86d2aced2", false, "yifahnadmin" });
+                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "32ec3a81-4cbc-4cf7-85a7-f853e9112b1f", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEO4693PyU4EfDjEUHJUouV4apWX9dvs/D4CKX/Rhk+EG54HNL7JuPGjb8IqfxJyPWQ==", null, false, "201adbc4-01be-4c30-8645-e04ca02b9e9d", false, "yifahnadmin" });
 
             migrationBuilder.InsertData(
                 table: "AspNetUserRoles",

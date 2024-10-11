@@ -16,7 +16,7 @@ namespace MM_API.Database.Postgres.DbSchema
         [ForeignKey("fk_user_id")]
         public t_User User { get; set; }
 
-        public BigInteger treasury_coin { get; set; }
+        public int treasury_coin { get; set; }
 
         public double treasury_gainrate { get; set; }
 
