@@ -31,7 +31,7 @@ namespace MM_API
             var builder = WebApplication.CreateBuilder(args);
 
             var settings = new JsonSerializerSettings();
-            settings.Converters.Add(new SerialisationSupport());
+            settings.Converters.Add(new DeserialisationSupport());
 
 
 
@@ -95,7 +95,7 @@ namespace MM_API
                     ValidAudience = builder.Configuration["JwtSettings:Audience"],
                     ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!)),
-                   
+
                     ClockSkew = TimeSpan.Zero,
                     RequireSignedTokens = true,
                     SaveSigninToken = true //required to access token from header
@@ -120,7 +120,7 @@ namespace MM_API
             // ADD CONTROLLERS
             builder.Services.AddControllers().AddNewtonsoftJson(options =>
             {
-                //options.SerializerSettings.Converters.Add(new SerialisationSupport());
+                //options.SerializerSettings.Converters.Add(new DeserialisationSupport());
 
             });
 

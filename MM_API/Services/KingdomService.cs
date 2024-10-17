@@ -178,7 +178,9 @@ namespace MM_API.Services
             return new KingdomLoadResponse()
             {
                 KingdomName = kingdom.kingdom_name,
-                KingdomMap = kingdom.kingdom_map
+                KingdomMap = kingdom.kingdom_map,
+
+                
             };
         }
         //    public async Task<IMapLoadResponse> LoadMap() //deprecate this for loadkingdom - on load, load all components - update individually
@@ -219,8 +221,7 @@ namespace MM_API.Services
                 Map map = new Map();
 
                 JsonSerializer serialiser = new JsonSerializer();
-
-                serialiser.Converters.Add(new SerialisationSupport());
+                serialiser.Converters.Add(new DeserialisationSupport());
                 using (StringReader sr = new StringReader(kingdom.kingdom_map))
                 {
                     using (JsonReader reader = new JsonTextReader(sr))
@@ -254,10 +255,12 @@ namespace MM_API.Services
                     totalNumBuildings[(int)nodeType1]--;
                     totalNumBuildings[(int)nodeType2]++;
 
-                    if (map.NodeArray[nodeIndexes[i]].NodeType != (int)NodeTypeEnum.Road && nodeTypes[i] == (int)NodeTypeEnum.Blockade) return null; //violates rule: cannot build build blockade on any nodetype except road
+                    if (map.NodeArray[nodeIndexes[i]].NodeType != (int)NodeTypeEnum.Road && nodeTypes[i] == (int)NodeTypeEnum.Blockade) return new MapUpdateResponse() { Success = false, ErrorMessage = "violates rule: cannot build build blockade on any nodetype except road" }; //violates rule: cannot build build blockade on any nodetype except road
                 }
-                if (!MapService.ValidateBuildActionByNumOfBuildings(totalNumBuildings)) return null; //violates building restrictions by nodetype totals
-                if (treasury.treasury_coin + coinRefund < coinCostTotal) return null; //insufficient funds
+
+                //expand on the below line of code's error message
+                if (!MapService.ValidateBuildActionByNumOfBuildings(totalNumBuildings)) return new MapUpdateResponse() { Success = false, ErrorMessage = "violates a building restriction rule by nodetype totals" }; //violates building restrictions by nodetype totals
+                if (treasury.treasury_coin + coinRefund < coinCostTotal) return new MapUpdateResponse() { Success = false, ErrorMessage = "insufficient funds" }; //insufficient funds
 
 
                 for (int i = 0; i < nodeIndexes.Length; i++)
@@ -356,9 +359,9 @@ namespace MM_API.Services
 
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back: {ex.Message}"); //add to dev log
                         await transaction.RollbackAsync();
-                        return null;
+                        return new MapUpdateResponse() { Success = false, ErrorMessage = $"Transaction failed, rolling back. Contact dev support for more information." };
                     }
                 }
 
@@ -370,11 +373,9 @@ namespace MM_API.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Update map failed: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Update map failed: {ex.Message}"); //add to dev log
+                return new MapUpdateResponse() { Success = false, ErrorMessage = $"Update map failed. Contact dev support for more information." };
             }
-            return new MapUpdateResponse()
-            {
-            };
         }
         public static (string, NpgsqlParameter[]) GenerateMapUpdateSQL(int nodeIndex, int nodeType, int userId)
         {

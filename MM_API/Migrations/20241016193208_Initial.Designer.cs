@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MM_API.Migrations
 {
     [DbContext(typeof(MM_DbContext))]
-    [Migration("20241011220307_Initial")]
+    [Migration("20241016193208_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -98,16 +98,16 @@ namespace MM_API.Migrations
                         {
                             Id = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "32ec3a81-4cbc-4cf7-85a7-f853e9112b1f",
+                            ConcurrencyStamp = "fe398ad8-f694-4896-9998-940c54cb90e5",
                             CustomUserId = -999,
                             Email = "yifahnadmin@gmail.com",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
                             NormalizedEmail = "YIFAHNADMIN@GMAIL.COM",
                             NormalizedUserName = "YIFAHNADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEO4693PyU4EfDjEUHJUouV4apWX9dvs/D4CKX/Rhk+EG54HNL7JuPGjb8IqfxJyPWQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEBfvcX3Y7K1k6qMZaAQpXEp6IQMgdE5NK2GGQNv52vQ2Rtjlt7FDKHk2G6t01/UHZQ==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "201adbc4-01be-4c30-8645-e04ca02b9e9d",
+                            SecurityStamp = "1951ebc0-770a-415d-b190-7f2a17248627",
                             TwoFactorEnabled = false,
                             UserName = "yifahnadmin"
                         });
@@ -158,6 +158,9 @@ namespace MM_API.Migrations
                     b.Property<string>("character_attributes")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<bool>("character_isalive")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("character_jewellery")
                         .IsRequired()

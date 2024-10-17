@@ -469,7 +469,6 @@ namespace MM_API.Services
                     character_cooldown = 0,
                     character_died = DateTimeOffset.MinValue,
                     character_isactive = true,
-                    character_isalive = true,
                     character_iscooldown = false,
                     character_politicalpoints = 0,
                     character_soup_numclaimtokens =0,
@@ -657,7 +656,7 @@ namespace MM_API.Services
 
                             character_attributes = characterAttributesSerialised,
                             character_state = characterStateSerialised,
-
+                            character_isalive = true
                         };
 
                         var soupkitchen = new t_Soupkitchen()

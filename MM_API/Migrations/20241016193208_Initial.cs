@@ -124,6 +124,7 @@ namespace MM_API.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     fk_user_id = table.Column<int>(type: "integer", nullable: false),
                     character_name = table.Column<string>(type: "text", nullable: false),
+                    character_isalive = table.Column<bool>(type: "boolean", nullable: false),
                     character_attributes = table.Column<string>(type: "jsonb", nullable: false),
                     character_state = table.Column<string>(type: "jsonb", nullable: false),
                     character_weapons = table.Column<string>(type: "jsonb", nullable: false),
@@ -328,7 +329,7 @@ namespace MM_API.Migrations
             migrationBuilder.InsertData(
                 table: "AspNetUsers",
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "CustomUserId", "Email", "EmailConfirmed", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "32ec3a81-4cbc-4cf7-85a7-f853e9112b1f", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEO4693PyU4EfDjEUHJUouV4apWX9dvs/D4CKX/Rhk+EG54HNL7JuPGjb8IqfxJyPWQ==", null, false, "201adbc4-01be-4c30-8645-e04ca02b9e9d", false, "yifahnadmin" });
+                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "fe398ad8-f694-4896-9998-940c54cb90e5", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEBfvcX3Y7K1k6qMZaAQpXEp6IQMgdE5NK2GGQNv52vQ2Rtjlt7FDKHk2G6t01/UHZQ==", null, false, "1951ebc0-770a-415d-b190-7f2a17248627", false, "yifahnadmin" });
 
             migrationBuilder.InsertData(
                 table: "AspNetUserRoles",

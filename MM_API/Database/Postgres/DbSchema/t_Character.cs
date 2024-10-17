@@ -18,7 +18,7 @@ namespace MM_API.Database.Postgres.DbSchema
         public t_User User { get; set; }
 
         public string character_name { get; set; }
-
+        public bool character_isalive { get; set; }
 
         [Column(TypeName = "jsonb")]
         public string character_attributes { get; set; }

@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using MM_API.Database.Postgres;
 using System.Security.Claims;
-using SharedNetworkFramework.Game.Soupkitchen;
 
 using SharedGameFramework.Game.Character;
 using SharedGameFramework.Game.Character.Attribute;
@@ -36,12 +35,19 @@ using SharedGameFramework.Game.Soupkitchen;
 using Npgsql;
 
 using NpgsqlTypes;
+using SharedGameFramework.Game.Kingdom.Map;
+using MM_API.Database.Postgres.DbSchema;
+using SharedGameFramework.Game.Kingdom.Map.BaseNode;
+using SharedGameFramework.Game;
+using SharedNetworkFramework.Game.Character.Inventory;
+using SharedGameFramework.Game.Armoury;
+using SharedNetworkFramework.Game.Soupkitchen.Claim;
 
 namespace MM_API.Services
 {
     public interface ISoupkitchenService
     {
-        public Task<ISoupkitchenClaimResponse> ClaimSoup();
+        public Task<IClaimResponse> ClaimSoup();
     }
     #region Production
     public class SoupkitchenService : ISoupkitchenService
@@ -55,7 +61,7 @@ namespace MM_API.Services
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
         }
-        public async Task<ISoupkitchenClaimResponse> ClaimSoup()
+        public async Task<IClaimResponse> ClaimSoup()
         {
             try
             {
@@ -81,7 +87,7 @@ namespace MM_API.Services
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
         }
-        public async Task<ISoupkitchenClaimResponse> ClaimSoup()
+        public async Task<IClaimResponse> ClaimSoup()
         {
             try
             {
@@ -246,63 +252,178 @@ namespace MM_API.Services
                         }
                         break;
                 }
-                var newClaimableJson = JsonConvert.SerializeObject(result); 
+                t_Character character = null;
+                t_Armoury armoury = null;
 
-                string sqlQuery = string.Empty;
-                NpgsqlParameter[] parameters;
+                EquipmentInventory armouryInventory = null;
+                CharacterSheet characterSheet = null;
 
-                if (result is SharedGameFramework.Game.Character.Attribute.BaseAttribute resultAttribute)
+                JsonSerializer serialiser = new JsonSerializer();
+                serialiser.Converters.Add(new DeserialisationSupport());
+                if (result is IEquipable)
                 {
-                    string attributeType = resultAttribute.AttributeType;
-                    int level = resultAttribute.Level;
-
-                    sqlQuery =  @"UPDATE t_character SET character_attributes = jsonb_set(character_attributes::jsonb,'{AttributeArray}',(SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, '{Level}', ((attr->> 'Level')::int + @Increment)::text::jsonb) ELSE attr END) FROM jsonb_array_elements(character_attributes->'AttributeArray') AS attr)) WHERE fk_user_id = @UserId;";
-
-                    parameters =
-                    [
-                        new NpgsqlParameter("@AttributeType", NpgsqlDbType.Text) { Value = attributeType },
-                        new NpgsqlParameter("@Increment", NpgsqlDbType.Integer ) { Value = level },
-                        new NpgsqlParameter("@UserId", NpgsqlDbType.Integer ) { Value = user.CustomUserId }
-                    ];
-                }
-                else
-                {
-                    sqlQuery = @"UPDATE t_armoury SET armoury_inventory = jsonb_insert(armoury_inventory, @EquipmentArray, @NewEquipment::jsonb) WHERE fk_user_id = @UserId";
-
-                    parameters =
-                    [
-                        new NpgsqlParameter("@NewEquipment", NpgsqlDbType.Jsonb) { Value = newClaimableJson },
-                        new NpgsqlParameter("@EquipmentArray", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = new string[] { "Equipment", "-1" } },
-                        new NpgsqlParameter("@UserId", NpgsqlDbType.Integer) { Value = user.CustomUserId }
-                    ];
-                }
-
-                using (var connection = new NpgsqlConnection(_dbContext.Database.GetConnectionString()))
-                {
-                    await connection.OpenAsync();
-                    using (var command = new NpgsqlCommand(sqlQuery, connection))
+                    armoury = await _dbContext.t_armoury.FirstAsync(u => u.fk_user_id == user.CustomUserId);
+                    armouryInventory = new EquipmentInventory();
+                    if (result is BaseWeapon)
                     {
-                        command.Parameters.AddRange(parameters);
-                        await command.ExecuteNonQueryAsync();
+                        using (StringReader sr = new StringReader(armoury.armoury_weapons))
+                        {
+                            using (JsonReader reader = new JsonTextReader(sr)) armouryInventory.WeaponList = serialiser.Deserialize<BaseWeapon[]>(reader).ToList(); armouryInventory.WeaponList.Add((BaseWeapon)result);
+                        }
+                    }
+                    else if (result is BaseArmour)
+                    {
+                        using (StringReader sr = new StringReader(armoury.armoury_armour))
+                        {
+                            using (JsonReader reader = new JsonTextReader(sr)) armouryInventory.ArmourList = serialiser.Deserialize<BaseArmour[]>(reader).ToList(); armouryInventory.ArmourList.Add((BaseArmour)result);
+                        }
+                    }
+                    else if (result is BaseJewellery)
+                    {
+                        using (StringReader sr = new StringReader(armoury.armoury_jewellery))
+                        {
+                            using (JsonReader reader = new JsonTextReader(sr)) armouryInventory.JewelleryList = serialiser.Deserialize<BaseJewellery[]>(reader).ToList(); armouryInventory.JewelleryList.Add((BaseJewellery)result);
+                        }
                     }
                 }
-
-                SoupkitchenClaimResponse response = new SoupkitchenClaimResponse()
+                else if (result is BaseAttribute)
                 {
-                    ClaimedItem = JsonConvert.SerializeObject(result)
-                };
-                return response;
+                    character = await _dbContext.t_character.FirstAsync(u => u.fk_user_id == user.CustomUserId);
+                    characterSheet = new CharacterSheet();
 
+                    using (StringReader sr = new StringReader(character.character_attributes))
+                    {
+                        using (JsonReader reader = new JsonTextReader(sr)) characterSheet.AttributeList = serialiser.Deserialize<BaseAttribute[]>(reader).ToList(); characterSheet.AttributeList.Find(e => e.GetType() == result.GetType()).Level += (result as BaseAttribute).Level;
+                    }
+                }
+                serialiser.Converters.Clear();
+
+
+                using (var transaction = await _dbContext.Database.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        string serialisedResult = string.Empty;
+                        if (result is IEquipable)
+                        {
+                            if (result is BaseWeapon)
+                            {
+                                using (StringWriter sw = new StringWriter())
+                                {
+                                    using (JsonWriter writer = new JsonTextWriter(sw))
+                                    {
+                                        serialiser.Serialize(writer, armouryInventory.WeaponList);
+                                        armoury.armoury_weapons = sw.ToString();
+                                        sw.GetStringBuilder().Clear();
+                                    }
+                                }
+                            }
+                            else if (result is BaseArmour)
+                            {
+                                using (StringWriter sw = new StringWriter())
+                                {
+                                    using (JsonWriter writer = new JsonTextWriter(sw))
+                                    {
+                                        serialiser.Serialize(writer, armouryInventory.ArmourList);
+                                        armoury.armoury_armour = sw.ToString();
+                                        sw.GetStringBuilder().Clear();
+                                    }
+                                }
+                            }
+                            else if (result is BaseJewellery)
+                            {
+                                using (StringWriter sw = new StringWriter())
+                                {
+                                    using (JsonWriter writer = new JsonTextWriter(sw))
+                                    {
+                                        serialiser.Serialize(writer, armouryInventory.JewelleryList);
+                                        armoury.armoury_jewellery = sw.ToString();
+                                        sw.GetStringBuilder().Clear();
+                                    }
+                                }
+                            }
+                        }
+                        else if (result is BaseAttribute)
+                        {
+                            using (StringWriter sw = new StringWriter())
+                            {
+                                using (JsonWriter writer = new JsonTextWriter(sw))
+                                {
+                                    serialiser.Serialize(writer, characterSheet.AttributeList);
+                                    character.character_attributes = sw.ToString();
+                                    sw.GetStringBuilder().Clear();
+                                }
+                            }
+                        }
+
+                        await _dbContext.SaveChangesAsync();
+                        transaction.Commit();
+
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back: {ex.Message}");  //add to dev log with timestamp and relevent game state details
+                        await transaction.RollbackAsync();
+                        return new ClaimResponse() { Success = false, ErrorMessage = $"Transaction failed, rolling back. Contact dev support for more information." };
+                    }
+
+                    return new ClaimResponse()
+                    {
+                        Success = true,
+                        ClaimedItem = JsonConvert.SerializeObject(result)
+                    };
+                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Claim soup failed: {ex.Message}");
+                return new ClaimResponse() { Success = false, ErrorMessage = $"Claim soup failed. Contact dev support for more information." };
             }
-            return null;
         }
     }
 }
 #endregion
+
+//string sqlQuery = string.Empty;
+//NpgsqlParameter[] parameters;
+
+//if (result is SharedGameFramework.Game.Character.Attribute.BaseAttribute resultAttribute)
+//{
+//    string attributeType = resultAttribute.AttributeType;
+//    int level = resultAttribute.Level;
+
+//    sqlQuery =  @"UPDATE t_character SET character_attributes = jsonb_set(character_attributes::jsonb,'{AttributeArray}',(SELECT jsonb_agg(CASE WHEN attr->> 'AttributeType' = @AttributeType THEN jsonb_set(attr, '{Level}', ((attr->> 'Level')::int + @Increment)::text::jsonb) ELSE attr END) FROM jsonb_array_elements(character_attributes->'AttributeArray') AS attr)) WHERE fk_user_id = @UserId;";
+
+//    parameters =
+//    [
+//        new NpgsqlParameter("@AttributeType", NpgsqlDbType.Text) { Value = attributeType },
+//        new NpgsqlParameter("@Increment", NpgsqlDbType.Integer ) { Value = level },
+//        new NpgsqlParameter("@UserId", NpgsqlDbType.Integer ) { Value = user.CustomUserId }
+//    ];
+//}
+//else
+//{
+//    sqlQuery = @"UPDATE t_armoury SET armoury_inventory = jsonb_insert(armoury_inventory, @EquipmentArray, @NewEquipment::jsonb) WHERE fk_user_id = @UserId";
+
+//    parameters =
+//    [
+//        new NpgsqlParameter("@NewEquipment", NpgsqlDbType.Jsonb) { Value = newClaimableJson },
+//        new NpgsqlParameter("@EquipmentArray", NpgsqlDbType.Array | NpgsqlDbType.Text) { Value = new string[] { "Equipment", "-1" } },
+//        new NpgsqlParameter("@UserId", NpgsqlDbType.Integer) { Value = user.CustomUserId }
+//    ];
+//}
+
+//using (var connection = new NpgsqlConnection(_dbContext.Database.GetConnectionString()))
+//{
+//    await connection.OpenAsync();
+//    using (var command = new NpgsqlCommand(sqlQuery, connection))
+//    {
+//        command.Parameters.AddRange(parameters);
+//        await command.ExecuteNonQueryAsync();
+//    }
+//}
+
+
 //ommitting transaction as only one command is executed, not a series of commands. also this method of transaction is for efcore, not direct npgsql commands
 //
 //using (var transaction = await _dbContext.Database.BeginTransactionAsync()) 
@@ -392,7 +513,7 @@ namespace MM_API.Services
 
 
 
-//SoupkitchenClaimResponse response = new SoupkitchenClaimResponse()
+//ClaimResponse response = new ClaimResponse()
 //{
 //    ClaimedItem = JsonConvert.SerializeObject(result)
 //};

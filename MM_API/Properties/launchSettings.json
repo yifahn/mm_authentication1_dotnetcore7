@@ -13,8 +13,7 @@
     "MM_API_Production": {
       "commandName": "Project",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Production",
-        "ADMIN_PASSWORD": ""
+        "ASPNETCORE_ENVIRONMENT": "Production"
       },
       "applicationUrl": "http://your-production-url"
     }

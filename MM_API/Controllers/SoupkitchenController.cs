@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MM_API.Services;
 using SharedGameFramework.Game.Soupkitchen;
-using SharedNetworkFramework.Game.Soupkitchen;
+using SharedNetworkFramework.Game.Soupkitchen.Claim;
 
 
 namespace MM_API.Controllers
@@ -19,7 +19,7 @@ namespace MM_API.Controllers
         //localhost:5223/soupkitchen/claimsoup
         [Authorize(Policy = "UserPolicy")]
         [HttpPost("claimsoup")]
-        public async Task<ActionResult<ISoupkitchenClaimResponse>> ClaimSoup()//[FromBody] MapLoadPayload payload
+        public async Task<ActionResult<IClaimResponse>> ClaimSoup()//[FromBody] MapLoadPayload payload
         {
             if (!ModelState.IsValid)
             {
@@ -28,7 +28,7 @@ namespace MM_API.Controllers
             try
             {
                 var result = await _soupkitchenService.ClaimSoup();
-                if (result is ISoupkitchenClaimResponse)
+                if (result is IClaimResponse)
                 {
                     return Ok(result);
                 }
