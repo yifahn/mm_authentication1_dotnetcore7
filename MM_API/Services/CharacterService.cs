@@ -1,45 +1,50 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq;
+using System.Security.Claims;
+using System.Collections.Generic;
+using System.Reflection.PortableExecutable;
+
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 
-using System.Security.Claims;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
-using SharedNetworkFramework.Game.Character;
-using SharedNetworkFramework.Game.Kingdom.Map;
-using SharedNetworkFramework.Game.Kingdom;
-using SharedNetworkFramework.Game.Character.Sheet;
-using SharedNetworkFramework.Game.Character.State;
-using SharedNetworkFramework.Game.Character.Inventory;
+using Npgsql.Internal;
 
 using MM_API.Database.Postgres;
 using MM_API.Database.Postgres.DbSchema;
-using SharedGameFramework.Game;
-using SharedGameFramework.Game.Kingdom.Map;
-using SharedGameFramework.Game.Armoury.Equipment;
-using SharedGameFramework.Game.Character;
 
-using Newtonsoft.Json;
+using MonoMonarchNetworkFramework.Game.Character;
+using MonoMonarchNetworkFramework.Game.Kingdom.Map;
+using MonoMonarchNetworkFramework.Game.Kingdom;
+using MonoMonarchNetworkFramework.Game.Character.Sheet;
+using MonoMonarchNetworkFramework.Game.Character.State;
+using MonoMonarchNetworkFramework.Game.Character.Inventory;
 
-using Newtonsoft.Json.Linq;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon.Sword;
-using SharedGameFramework.Game.Armoury;
-using System.Collections.Generic;
-using Npgsql.Internal;
-using System.Reflection.PortableExecutable;
-using SharedGameFramework.Game.Soupkitchen;
-using SharedGameFramework.Game.Armoury.Equipment.Jewellery.Ring;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Hands;
-using System.Linq;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Arms;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Feet;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Head;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Legs;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Torso;
+using MonoMonarchGameFramework.Game;
+using MonoMonarchGameFramework.Game.Kingdom.Map;
+using MonoMonarchGameFramework.Game.Armoury.Equipment;
+using MonoMonarchGameFramework.Game.Character;
+
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon.Sword;
+using MonoMonarchGameFramework.Game.Armoury;
+
+using MonoMonarchGameFramework.Game.Soupkitchen;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery.Ring;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Hands;
+
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Arms;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Feet;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Head;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Legs;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Torso;
+using MonoMonarchNetworkFramework;
 
 namespace MM_API.Services
 {
     public interface ICharacterService
     {
-        public Task<ICharacterLoadResponse> LoadCharacter();
+        public Task<ICharacterLoadResponse> LoadCharacterAsync();
         public Task<ISheetUpdateResponse> UpdateCharacterSheet(SheetUpdatePayload sheetUpdatePayload);
         public Task<IStateUpdateResponse> UpdateCharacterState(StateUpdatePayload stateUploadPayload);
         public Task<IInventoryUpdateResponse> UpdateCharacterInventory(InventoryUpdatePayload inventoryUpdatePayload);
@@ -68,7 +73,7 @@ namespace MM_API.Services
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
         }
-        public async Task<ICharacterLoadResponse> LoadCharacter()
+        public async Task<ICharacterLoadResponse> LoadCharacterAsync()
         {
             try
             {
@@ -79,19 +84,21 @@ namespace MM_API.Services
 
                 return new CharacterLoadResponse
                 {
+
                     CharacterName = character.character_name,
-                    CharacterWeapons = JsonConvert.SerializeObject(character.character_weapons),
-                    CharacterArmour = JsonConvert.SerializeObject(character.character_armour),
+
+                    CharacterWeapons = character.character_weapons,
+                    CharacterArmour = character.character_armour,
                     CharacterJewellery = character.character_jewellery,
+
                     CharacterSheet = character.character_attributes,
-                    CharacterState = JsonConvert.SerializeObject(character.character_state)
+                    CharacterState = character.character_state
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Load character failed: {ex.Message}");
+                return new ErrorResponse("Load character failed");
             }
-            return null;
         }
         public async Task<IInventoryUpdateResponse> UpdateCharacterInventory(InventoryUpdatePayload inventoryUpdatePayload)
         {
@@ -112,7 +119,7 @@ namespace MM_API.Services
                 //two rings (left and right hand)
                 //one amulet
                 if (inventoryUpdatePayload.EquipmentLocalIdNums.Count() > 10)
-                    return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." };
+                    return new ErrorResponse("Malformed payload detected");
                 ///complete
                 ///
 
@@ -201,7 +208,8 @@ namespace MM_API.Services
                                 characterSearchResult[localId] = true;
 
                                 payloadEquipmentTypes["Weapon"]++;
-                                if (payloadEquipmentTypes["Weapon"] > 1) return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." };
+                                if (payloadEquipmentTypes["Weapon"] > 1)
+                                    return new ErrorResponse("Malformed payload detected");
                                 break;
                             }
                         }
@@ -231,7 +239,9 @@ namespace MM_API.Services
                                 characterSearchResult[localId] = true;
 
                                 payloadEquipmentTypes[$"{armour.ArmourType}"]++;
-                                if (payloadEquipmentTypes[$"{armour.ArmourType}"] > 1) return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." };
+                                if (payloadEquipmentTypes[$"{armour.ArmourType}"] > 1) 
+                                    return new ErrorResponse("Malformed payload detected");
+                                
                                 break;
                             }
                         }
@@ -261,8 +271,10 @@ namespace MM_API.Services
                                 characterSearchResult[localId] = true;
 
                                 payloadEquipmentTypes[$"{jewellery.JewelleryType}"]++;
-                                if (payloadEquipmentTypes["Ring"] > 0 && inventoryUpdatePayload.RingHand == null) return new InventoryUpdateResponse { Success = false, ErrorMessage = "I see you." };
-                                if (payloadEquipmentTypes["Amulet"] > 1 || payloadEquipmentTypes["Ring"] > 2) return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." };
+                                if (payloadEquipmentTypes["Ring"] > 0 && inventoryUpdatePayload.RingHand == null) 
+                                    return new ErrorResponse("Malformed payload detected");
+                                if (payloadEquipmentTypes["Amulet"] > 1 || payloadEquipmentTypes["Ring"] > 2) 
+                                    return new ErrorResponse("Malformed payload detected");
                                 break;
                             }
                         }
@@ -270,12 +282,16 @@ namespace MM_API.Services
 
                     else
                     {
-                        return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." }; //a valid payload at this point mustn't fail this check
+                        return new ErrorResponse("Malformed payload detected");
                     }
                 }
                 //check if search is consistant
                 bool badPayloadDetected = characterSearchResult[inventoryUpdatePayload.EquipmentLocalIdNums[0]];
-                foreach (bool value in characterSearchResult.Values) if (value != badPayloadDetected) return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." };
+                foreach (bool value in characterSearchResult.Values)
+                {
+                    if (value != badPayloadDetected)
+                        return new ErrorResponse("Malformed payload detected");
+                }
                 ///complete
                 ///
 
@@ -393,7 +409,8 @@ namespace MM_API.Services
                                     isFound = true;
 
                                     payloadEquipmentTypes["Weapon"]++;
-                                    if (payloadEquipmentTypes["Weapon"] > 1) return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." };
+                                    if (payloadEquipmentTypes["Weapon"] > 1)
+                                            return new ErrorResponse("Malformed payload detected");
                                     //locate weapon to swap if character has weapon equipped
                                     if (characterInventory.WeaponList.Count == 1) swapEquipmentTypes["Weapon"] = characterWeaponDict.ElementAt(0).Value;//characterWeaponDict != null ||characterWeaponDict.ElementAt(0).Value != null
                                     break;
@@ -425,7 +442,8 @@ namespace MM_API.Services
                                     isFound = true;
 
                                     payloadEquipmentTypes[$"{armour.ArmourType}"]++;
-                                    if (payloadEquipmentTypes[$"{armour.ArmourType}"] > 1) return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." };
+                                    if (payloadEquipmentTypes[$"{armour.ArmourType}"] > 1)
+                                        return new ErrorResponse("Malformed payload detected");
 
                                     if ((swapEquipmentTypes[$"{armour.ArmourType}"] = characterArmourDict.Values.FirstOrDefault(a => a.ArmourType == armour.ArmourType)) != null) { }
                                     break;
@@ -456,8 +474,10 @@ namespace MM_API.Services
 
 
                                     payloadEquipmentTypes[$"{jewellery.JewelleryType}"]++;
-                                    if (payloadEquipmentTypes["Ring"] > 0 && inventoryUpdatePayload.RingHand == null) return new InventoryUpdateResponse { Success = false, ErrorMessage = "I see you." };
-                                    if (payloadEquipmentTypes["Amulet"] > 1 || payloadEquipmentTypes["Ring"] > 2) return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." };
+                                    if (payloadEquipmentTypes["Ring"] > 0 && inventoryUpdatePayload.RingHand == null)
+                                        return new ErrorResponse("Malformed payload detected");
+                                    if (payloadEquipmentTypes["Amulet"] > 1 || payloadEquipmentTypes["Ring"] > 2)
+                                        return new ErrorResponse("Malformed payload detected");
 
                                     //payload validation
                                     if (jewellery.JewelleryType == "Ring")
@@ -467,7 +487,7 @@ namespace MM_API.Services
                                         {
                                             if (inventoryUpdatePayload.RingHand.Count < 1 ||
                                                 !inventoryUpdatePayload.RingHand.ContainsKey(localId))
-                                                return new InventoryUpdateResponse { Success = false, ErrorMessage = "I see you." };
+                                                return new ErrorResponse("Malformed payload detected");
 
                                             //if (inventoryUpdatePayload.RingHand.Count < 1 || 
                                             //    !inventoryUpdatePayload.RingHand.TryGetValue(jewellery.LocalId, out bool handSide) ||
@@ -483,7 +503,7 @@ namespace MM_API.Services
                                                 inventoryUpdatePayload.RingHand.Count != 2 ||
                                                 inventoryUpdatePayload.RingHand.Values.Distinct().Count() != 2)
                                             {
-                                                return new InventoryUpdateResponse { Success = false, ErrorMessage = "I see you." };
+                                                return new ErrorResponse("Malformed payload detected");
                                             }
                                         }
                                         if (inventoryUpdatePayload.RingHand[jewellery.LocalId] == false)
@@ -523,9 +543,10 @@ namespace MM_API.Services
                         }
                         else
                         {
-                            return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." };
+                            return new ErrorResponse("Malformed payload detected");
                         }
-                        if (!isFound) return new InventoryUpdateResponse { Success = false, ErrorMessage = $"I see you." }; //required here as each payload item must exist in armouryInventory at this point
+                        if (!isFound)
+                            return new ErrorResponse("Malformed payload detected");//required here as each payload item must exist in armouryInventory at this point
                     }
                     ///action equip phase
                     ///
@@ -659,22 +680,17 @@ namespace MM_API.Services
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back: {ex.Message}");  //add to dev log with timestamp and relevent game state details
                         await transaction.RollbackAsync();
-                        return new InventoryUpdateResponse() { Success = false, ErrorMessage = $"Transaction failed, rolling back. Contact dev support for more information." };
+                        return new ErrorResponse("Transaction failed, rolling back");
                     }
 
-                    return new InventoryUpdateResponse
-                    {
-                        Success = true
-                    };
+                    return new InventoryUpdateResponse { };
                 }
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Update character inventory failed: {ex.Message}"); //add to dev log
-                return new InventoryUpdateResponse() { Success = false, ErrorMessage = $"Update character inventory failed: Contact dev support for more information." };
+                return new ErrorResponse("Update character inventory failed");
             }
         }
         public async Task<ISheetUpdateResponse> UpdateCharacterSheet(SheetUpdatePayload sheetUpdatePayload)
@@ -687,11 +703,10 @@ namespace MM_API.Services
 
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Update character sheet failed: {ex.Message}");
+                return new ErrorResponse("Update character sheet failed");
             }
-            return null;
         }
         public async Task<IStateUpdateResponse> UpdateCharacterState(StateUpdatePayload stateUpdatePayload)
         {
@@ -703,11 +718,10 @@ namespace MM_API.Services
 
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Update character state failed: {ex.Message}");
+                return new ErrorResponse("Update character state failed");
             }
-            return null;
         }
     }
 }

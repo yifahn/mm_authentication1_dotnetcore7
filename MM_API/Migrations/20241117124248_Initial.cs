@@ -125,8 +125,8 @@ namespace MM_API.Migrations
                     fk_user_id = table.Column<int>(type: "integer", nullable: false),
                     character_name = table.Column<string>(type: "text", nullable: false),
                     character_isalive = table.Column<bool>(type: "boolean", nullable: false),
-                    character_attributes = table.Column<string>(type: "jsonb", nullable: false),
                     character_state = table.Column<string>(type: "jsonb", nullable: false),
+                    character_attributes = table.Column<string>(type: "jsonb", nullable: false),
                     character_weapons = table.Column<string>(type: "jsonb", nullable: false),
                     character_armour = table.Column<string>(type: "jsonb", nullable: false),
                     character_jewellery = table.Column<string>(type: "jsonb", nullable: false)
@@ -192,7 +192,10 @@ namespace MM_API.Migrations
                 {
                     soupkitchen_id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    fk_user_id = table.Column<int>(type: "integer", nullable: false)
+                    fk_user_id = table.Column<int>(type: "integer", nullable: false),
+                    soupkitchen_updated_at_datetime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    soupkitchen_updated_at_as_gametick = table.Column<int>(type: "integer", nullable: false),
+                    soupkitchen_state = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -212,9 +215,10 @@ namespace MM_API.Migrations
                     treasury_id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     fk_user_id = table.Column<int>(type: "integer", nullable: false),
-                    treasury_coin = table.Column<int>(type: "integer", nullable: false),
-                    treasury_gainrate = table.Column<double>(type: "double precision", nullable: false),
-                    treasury_multiplier = table.Column<double>(type: "double precision", nullable: false)
+                    treasury_state = table.Column<string>(type: "jsonb", nullable: true),
+                    treasury_total = table.Column<long>(type: "bigint", nullable: false),
+                    treasury_updated_at_datetime = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    treasury_updated_at_as_gametick = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -329,7 +333,12 @@ namespace MM_API.Migrations
             migrationBuilder.InsertData(
                 table: "AspNetUsers",
                 columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "CustomUserId", "Email", "EmailConfirmed", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName" },
-                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "fe398ad8-f694-4896-9998-940c54cb90e5", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEBfvcX3Y7K1k6qMZaAQpXEp6IQMgdE5NK2GGQNv52vQ2Rtjlt7FDKHk2G6t01/UHZQ==", null, false, "1951ebc0-770a-415d-b190-7f2a17248627", false, "yifahnadmin" });
+                values: new object[] { "5de48f8c-0a70-4e21-9cc0-798ff818fdc3", 0, "0f2b7b40-03fc-4995-85e6-ce7f298576e2", -999, "yifahnadmin@gmail.com", false, false, null, "YIFAHNADMIN@GMAIL.COM", "YIFAHNADMIN", "AQAAAAIAAYagAAAAEKN0SmeAwjqtnU7UxkkumgpgaK/viGtJ64AX+PmGLVm+0knn4ZQ7W+2L51mHY0gflg==", null, false, "00c7552c-4c9e-4a59-8ecc-a403174032e2", false, "yifahnadmin" });
+
+            migrationBuilder.InsertData(
+                table: "t_session",
+                columns: new[] { "session_id", "fk_user_id", "refreshtoken", "session_loggedin", "session_loggedout" },
+                values: new object[] { -999, -999, "null", new DateTimeOffset(new DateTime(2024, 11, 17, 12, 42, 48, 174, DateTimeKind.Unspecified).AddTicks(3126), new TimeSpan(0, 0, 0, 0, 0)), new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)) });
 
             migrationBuilder.InsertData(
                 table: "AspNetUserRoles",

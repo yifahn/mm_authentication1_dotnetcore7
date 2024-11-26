@@ -17,45 +17,51 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 
-using SharedNetworkFramework.Authentication.RefreshToken;
-using SharedNetworkFramework.Authentication.Register;
-using SharedNetworkFramework.Authentication.Login;
-using SharedNetworkFramework.Authentication.Logout;
+using MonoMonarchNetworkFramework.Authentication.RefreshToken;
+using MonoMonarchNetworkFramework.Authentication.Register;
+using MonoMonarchNetworkFramework.Authentication.Login;
+using MonoMonarchNetworkFramework.Authentication.Logout;
 
-using SharedGameFramework.Game.Kingdom.Map.BaseNode;
-using SharedGameFramework.Game.Kingdom.Map;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode;
+using MonoMonarchGameFramework.Game.Kingdom.Map;
 
-using SharedGameFramework.Game.Character;
-using SharedGameFramework.Game.Character.State;
+using MonoMonarchGameFramework.Game.Character;
 
-using SharedGameFramework.Game.Character.Attribute;
-using SharedGameFramework.Game.Character.Attribute.CharacterLevel;
-using SharedGameFramework.Game.Character.Attribute.Constitution;
-using SharedGameFramework.Game.Character.Attribute.Defence;
-using SharedGameFramework.Game.Character.Attribute.Luck;
-using SharedGameFramework.Game.Character.Attribute.Stamina;
-using SharedGameFramework.Game.Character.Attribute.Strength;
+using MonoMonarchGameFramework.Game.Character.Attribute;
+using MonoMonarchGameFramework.Game.Character.Attribute.CharacterLevel;
+using MonoMonarchGameFramework.Game.Character.Attribute.Constitution;
+using MonoMonarchGameFramework.Game.Character.Attribute.Defence;
+using MonoMonarchGameFramework.Game.Character.Attribute.Luck;
+using MonoMonarchGameFramework.Game.Character.Attribute.Stamina;
+using MonoMonarchGameFramework.Game.Character.Attribute.Strength;
 
-using SharedGameFramework.Game.Armoury.Equipment;
-using SharedGameFramework.Game.Armoury.Equipment.Armour;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Arms;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Hands;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Head;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Legs;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Feet;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Torso;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon.Axe;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon.Spear;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon.Staff;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon.Sword;
-using SharedGameFramework.Game.Armoury.Equipment.Jewellery;
-using SharedGameFramework.Game.Armoury.Equipment.Jewellery.Amulet;
-using SharedGameFramework.Game.Armoury.Equipment.Jewellery.Ring;
+using MonoMonarchGameFramework.Game.Armoury.Equipment;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Arms;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Hands;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Head;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Legs;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Feet;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Torso;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon.Axe;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon.Spear;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon.Staff;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon.Sword;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery.Amulet;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery.Ring;
 
-using System.Xml.Linq;
-using SharedGameFramework.Game.Armoury;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode.Grassland;
+using MonoMonarchGameFramework.Game;
+using MonoMonarchGameFramework.Game.Armoury;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.Grassland;
+using MonoMonarchGameFramework.Game.Treasury;
+using MonoMonarchGameFramework.Game.Treasury.Currency;
+using MonoMonarchGameFramework.Game.Treasury.GoldBag;
+using MonoMonarchGameFramework.Game.Soupkitchen;
+using MonoMonarchNetworkFramework;
+using System.Numerics;
+
 
 namespace MM_API.Services
 {
@@ -141,15 +147,9 @@ namespace MM_API.Services
                         };
                         await _dbContext.AddAsync(soupkitchen);
 
-                        var treasury = new t_Treasury()
-                        {
-                            treasury_coin = 0,
-                            treasury_gainrate = 0,
-                            treasury_multiplier = 0,
 
-                            fk_user_id = user.user_id
-                        };
-                        await _dbContext.AddAsync(treasury);
+
+                        // await _dbContext.AddAsync(treasury);
 
                         var armoury = new t_Armoury()
                         {
@@ -172,21 +172,20 @@ namespace MM_API.Services
 
                         return new RegistrationResponse()
                         {
-                            Username = userName,
+                            //Username = userName,
                         };
                     }
                     catch (Exception)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back");
                         await transaction.RollbackAsync();
+                        return new ErrorResponse("Transaction failed, rolling back");
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+                return new ErrorResponse("Registration failed");
             }
-            return null;
         }
 
         public async Task<ILoginResponse> LoginAsync(LoginPayload loginPayload)
@@ -195,30 +194,13 @@ namespace MM_API.Services
             {
                 var user = await _userManager.FindByEmailAsync(loginPayload.Email);
                 if (user == null)
-                {
-                    return new AuthenticationErrorHandler
-                    {
-                        Errors = [new IdentityError
-                        {
-                            Code = "Bad Credentials",
-                            Description = "Invalid email or password."
-                        }]
-                    };
-                }
+                    return new ErrorResponse("Invalid email or password"); //email
 
                 var signInResult = await _signInManager.CheckPasswordSignInAsync(user, loginPayload.Password, lockoutOnFailure: false);
 
                 if (!signInResult.Succeeded)
-                {
-                    return new AuthenticationErrorHandler
-                    {
-                        Errors = [new IdentityError
-                        {
-                            Code = "Bad Credentials",
-                            Description = "Invalid email or password."
-                        }]
-                    };
-                }
+                    return new ErrorResponse("Invalid email or password"); // password
+
                 string authToken = await GenerateAuthToken(user);
                 RefreshToken refreshToken = await GenerateRefreshTokenAsync();
 
@@ -249,7 +231,7 @@ namespace MM_API.Services
 
                 return new LoginResponse
                 {
-                    Username = user.UserName,
+                    //Username = user.UserName,
                     AuthToken = authToken,
                     RefreshToken = refreshToken
                 };
@@ -293,7 +275,7 @@ namespace MM_API.Services
                 await _dbContext.SaveChangesAsync();
                 return new LogoutResponse
                 {
-                    IsSuccess = true
+                    //IsSuccess = true
                 };
             }
             catch (Exception ex)
@@ -461,18 +443,7 @@ namespace MM_API.Services
                 {
                     Token = "null",
                     Expires = DateTimeOffset.MinValue,
-                    Created = DateTimeOffset.MinValue
-                };
-
-                State characterState = new State()
-                {
-                    character_cooldown = 0,
-                    character_died = DateTimeOffset.MinValue,
-                    character_isactive = true,
-                    character_iscooldown = false,
-                    character_politicalpoints = 0,
-                    character_soup_numclaimtokens =0,
-                    character_soup_totalnumclaimed =0
+                    Created = GameUtilities.GetCurrentTickAsDateTime(),
                 };
                 BaseWeapon[] characterWeapons = [];
                 BaseArmour[] characterArmour =
@@ -547,12 +518,16 @@ namespace MM_API.Services
                 BaseArmour[] armouryArmour = [];
                 BaseJewellery[] armouryJewellery = [];
 
+                TreasuryState treasuryData = new TreasuryState();
+                SoupkitchenState soupkitchenData = new SoupkitchenState();
+                CharacterState characterState = new CharacterState();
 
-                //FOR TESTING - IF SERIALISING .NET STRUC ARRAYS DOESN'T WORK, TRY FOR LOOP THROUGH EACH ELEMENT IN ARRAY, AND CONSTRUCT ARRAY CHARACTERS MANUALLY
+                DateTimeOffset currentTickAsDateTime = GameUtilities.GetCurrentTickAsDateTime();
+                BigInteger subtractionResult = treasuryData.SubtractCoin(treasuryData.GetTotalCoin()); //adjust to 0, due to UpdateCoin adding coin - precaution
+                if (subtractionResult > 0)
+                    return new ErrorResponse("Subtract coin error during registration seeding");
 
                 string sessionRefreshTokenSerialised;
-
-                //string grasslandMapSerialised;
 
                 string characterAttributesSerialised;
                 string characterWeaponsSerialised, characterArmourSerialised, characterJewellerySerialised;
@@ -560,6 +535,7 @@ namespace MM_API.Services
 
                 string armouryWeaponsSerialised, armouryArmourSerialised, armouryJewellerySerialised;
 
+                string treasuryDataSerialised, soupkitchenDataSerialised;
                 JsonSerializer serialiser = new JsonSerializer();
                 using (StringWriter sw = new StringWriter())
                 {
@@ -598,6 +574,14 @@ namespace MM_API.Services
                         serialiser.Serialize(writer, armouryJewellery);
                         armouryJewellerySerialised = sw.ToString();
                         sw.GetStringBuilder().Clear();
+
+                        serialiser.Serialize(writer, treasuryData);
+                        treasuryDataSerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+
+                        serialiser.Serialize(writer, soupkitchenData);
+                        soupkitchenDataSerialised = sw.ToString();
+                        sw.GetStringBuilder().Clear();
                     }
                 }
                 serialiser = null;
@@ -614,15 +598,17 @@ namespace MM_API.Services
                         var user = new t_User()
                         {
                             user_name = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
+
                         };
                         await _dbContext.AddAsync(user);
                         await _dbContext.SaveChangesAsync();  //save changes generate auto-incremement (integer) user_id
                         var session = new t_Session()
                         {
-                            session_loggedin = DateTimeOffset.MinValue,
-                            session_loggedout = DateTimeOffset.MinValue,
+                            session_loggedin = DateTimeOffset.MaxValue,
+                            session_loggedout = DateTimeOffset.MaxValue,
                             refreshtoken = sessionRefreshTokenSerialised,
-                            fk_user_id = user.user_id
+                            fk_user_id = user.user_id,
+
                         };
 
                         var kingdom = new t_Kingdom()
@@ -631,7 +617,7 @@ namespace MM_API.Services
                             fk_user_id = user.user_id,
                             kingdom_map = grasslandMapJson,
 
-                            kingdom_num_node_types = 
+                            kingdom_num_node_types =
                             [
                                 1980,
                                 0,
@@ -642,7 +628,8 @@ namespace MM_API.Services
                                 0,
                                 0,
                                 0
-                                ]
+                                ],
+
                         };
 
                         var character = new t_Character()
@@ -656,21 +643,36 @@ namespace MM_API.Services
 
                             character_attributes = characterAttributesSerialised,
                             character_state = characterStateSerialised,
-                            character_isalive = true
+                            character_isalive = true,
+
+
                         };
 
                         var soupkitchen = new t_Soupkitchen()
                         {
                             fk_user_id = user.user_id,
+                            soupkitchen_state = soupkitchenDataSerialised,
+                            soupkitchen_updated_at_as_gametick = 0,
+                            soupkitchen_updated_at_datetime = currentTickAsDateTime,
+
+
                         };
 
                         var treasury = new t_Treasury()
                         {
-                            treasury_coin = 0,
-                            treasury_gainrate = 5,
-                            treasury_multiplier = 1,
+                            fk_user_id = user.user_id,
 
-                            fk_user_id = user.user_id
+                            treasury_total = 0,
+                            treasury_updated_at_as_gametick = 0,
+
+                            treasury_updated_at_datetime = currentTickAsDateTime,
+                            //new DateTimeOffset(
+                            //DateTimeOffset.UtcNow.Year, DateTimeOffset.UtcNow.Month, DateTimeOffset.UtcNow.Day, 
+                            //DateTimeOffset.UtcNow.Hour, DateTimeOffset.UtcNow.Minute, DateTimeOffset.UtcNow.Second - (DateTimeOffset.UtcNow.Second % 5),
+                            //TimeSpan.Zero),
+
+                            treasury_state = treasuryDataSerialised,
+
                         };
 
                         var armoury = new t_Armoury()
@@ -679,7 +681,8 @@ namespace MM_API.Services
 
                             armoury_weapons = armouryWeaponsSerialised,
                             armoury_armour = armouryArmourSerialised,
-                            armoury_jewellery = armouryJewellerySerialised
+                            armoury_jewellery = armouryJewellerySerialised,
+
 
                         };
 
@@ -695,7 +698,7 @@ namespace MM_API.Services
                         var identityUser = new ApplicationUser()
                         {
                             Id = Guid.NewGuid().ToString(),
-                            UserName = user.user_name,
+                            UserName = registrationPayload.Email,
                             Email = registrationPayload.Email,
                             CustomUserId = user.user_id,
                         };
@@ -703,24 +706,22 @@ namespace MM_API.Services
                         var claimsResult = await _userManager.AddToRoleAsync(identityUser, "User");
 
                         await transaction.CommitAsync();
-
-                        return new RegistrationResponse()
-                        {
-                            Username = user.user_name,
-                        };
+                        var result = new RegistrationResponse();
+                        return result;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back: {ex.Message}");
                         await transaction.RollbackAsync();
+                        var result = new ErrorResponse("Transaction failed, rolling back");
+                        return result;
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+                var result = new ErrorResponse("Registration failed");
+                return result;
             }
-            return null;
         }
 
         public async Task<ILoginResponse> LoginAsync(LoginPayload loginPayload)
@@ -729,72 +730,50 @@ namespace MM_API.Services
             {
                 var user = await _userManager.FindByEmailAsync(loginPayload.Email);
                 if (user == null)
-                {
-                    return new AuthenticationErrorHandler
-                    {
-                        Errors = [new IdentityError
-                        {
-                            Code = "Bad Credentials",
-                            Description = "Invalid email or password."
-                        }]
-                    };
-                }
+                    return new ErrorResponse("Invalid email or password"); // email
 
                 var signInResult = await _signInManager.CheckPasswordSignInAsync(user, loginPayload.Password, lockoutOnFailure: false);
 
                 if (!signInResult.Succeeded)
-                {
-                    return new AuthenticationErrorHandler
-                    {
-                        Errors = [new IdentityError
-                        {
-                            Code = "Bad Credentials",
-                            Description = "Invalid email or password."
-                        }]
-                    };
-                }
+                    return new ErrorResponse("Invalid email or password"); // password
+
                 string authToken = await GenerateAuthToken(user);
                 RefreshToken refreshToken = await GenerateRefreshTokenAsync();
 
-                var serialisedRefreshToken = JsonConvert.SerializeObject(refreshToken);
-
-                t_Session session = await _dbContext.t_session
-                    .Where(w => w.fk_user_id == user.CustomUserId && w.session_loggedin == DateTimeOffset.MinValue)
-                    .FirstOrDefaultAsync();
-
-                if (session != null)
+                string serialisedRefreshToken;
+                JsonSerializer serialiser = new JsonSerializer();
+                using (StringWriter sw = new StringWriter())
                 {
-                    session.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
-                    session.refreshtoken = serialisedRefreshToken;
-                }
-                else
-                {
-                    session = new t_Session
+                    using (JsonWriter writer = new JsonTextWriter(sw))
                     {
-                        fk_user_id = user.CustomUserId,
-                        session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
-                        session_loggedout = DateTimeOffset.MinValue,
-                        refreshtoken = serialisedRefreshToken
-                    };
-                    await _dbContext.t_session.AddAsync(session);
+                        serialiser.Serialize(writer, refreshToken);
+                        serialisedRefreshToken = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+                    }
                 }
+                t_Session session = new t_Session
+                {
+                    fk_user_id = user.CustomUserId,
+                    session_loggedin = GameUtilities.GetCurrentTickAsDateTime(),
+                    session_loggedout = DateTimeOffset.MaxValue,
+                    refreshtoken = serialisedRefreshToken
+                };
+                await _dbContext.t_session.AddAsync(session);
+                // }
 
                 await _dbContext.SaveChangesAsync();
 
                 return new LoginResponse
                 {
-                    Username = user.UserName,
                     AuthToken = authToken,
                     RefreshToken = refreshToken
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+                return new ErrorResponse("Login failed");
             }
-            return null;
         }
-
         public async Task<ILogoutResponse> LogoutAsync(LogoutPayload logoutPayload)
         {
 
@@ -802,98 +781,103 @@ namespace MM_API.Services
             {
                 var principle = GetTokenPrinciple(logoutPayload.AuthToken);
                 List<Claim> claims = principle.Claims.ToList();
+                if (principle == null)
+                    return new ErrorResponse("Invalid authToken");
                 var identityUser = await _userManager.FindByIdAsync(principle.Claims.ElementAt(0).Value);//claims.ElementAt(0).Value
+                if (identityUser == null)
+                    return new ErrorResponse("User not found");
                 t_Session session = await _dbContext.t_session
-                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MinValue)
-                    .OrderByDescending(s => s.session_loggedin)
+                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MaxValue)
+                    .OrderBy(s => s.session_loggedin)
                     .FirstOrDefaultAsync();
-
-                string serialisedRefreshToken = JsonConvert.SerializeObject(logoutPayload.RefreshToken);
-                string cleanSerialisedRefreshToken = session.refreshtoken.Replace(" ", "");
-                if (cleanSerialisedRefreshToken != serialisedRefreshToken) // as logout endpoint will require auth, user's refreshtoken in t_session should equal logoutpayload, if not it means user failed to logout in previous t_session entry
+                if (session == null)
+                    return new ErrorResponse("No active session found");
+                RefreshToken refreshToken;
+                JsonSerializer serialiser = new JsonSerializer();
+                using (StringReader sr = new StringReader(session.refreshtoken))
                 {
-                    string errorLog = "payload refresh token is not equal to stored refresh token";
-                    System.Diagnostics.Debug.WriteLine($"{errorLog}");
-                    //add case to logger - for now,
-                    session.refreshtoken = $"{JsonConvert.SerializeObject(errorLog)}";
-                    session.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
+                    using (JsonReader reader = new JsonTextReader(sr)) refreshToken = serialiser.Deserialize<RefreshToken>(reader);
                 }
-                else
-                {
-                    session.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
-                    session.refreshtoken = $"{JsonConvert.SerializeObject("logout success")}";
-                }
+                if (!refreshToken.Token.Equals(logoutPayload.RefreshToken.Token))
+                    session.refreshtoken = "Refresh token not equal to payload on Logout";
 
+                session.session_loggedout = GameUtilities.GetCurrentTickAsDateTime();
                 await _dbContext.SaveChangesAsync();
-                return new LogoutResponse
-                {
-                    IsSuccess = true
-                };
+                return new LogoutResponse();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Logout failed: {ex.Message}");
+                return new ErrorResponse("Logout failed");
             }
-            return null;
         }
 
-        //REVISIT THIS METHOD... NEEDS CHECKS ADDED
         public async Task<IRefreshTokenResponse> RefreshTokenAsync(RefreshTokenPayload refreshTokenPayload)
         {
             try
             {
-                //check if payload token == t_session token - never trust client/payload token
-
                 if (refreshTokenPayload.RefreshToken.Expires <= DateTimeOffset.UtcNow.UtcDateTime)
-                    return new RefreshTokenResponse() { AuthToken = "null", RefreshToken = new RefreshToken() { Token = "expired", Created = DateTimeOffset.MinValue, Expires = DateTimeOffset.MinValue } };
-
-
-                //check if token is expired
-                //THEN...
-
+                    return new ErrorResponse("Payload refresh token expired");
                 var principle = GetTokenPrinciple(refreshTokenPayload.AuthToken);
-
+                if (principle == null)
+                    return new ErrorResponse("Invalid authToken");
                 List<Claim> claims = principle.Claims.ToList();
                 var identityUser = await _userManager.FindByIdAsync(principle.Claims.ElementAt(0).Value);
+                if (identityUser == null)
+                    return new ErrorResponse("User not found");
                 t_Session session = await _dbContext.t_session
-                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MinValue)
-                    .OrderByDescending(s => s.session_loggedin)
+                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MaxValue)
+                    .OrderBy(s => s.session_loggedin)
                     .FirstOrDefaultAsync();
-
-                string serialisedRefreshToken = JsonConvert.SerializeObject(refreshTokenPayload.RefreshToken);
-                string cleanSerialisedRefreshToken = session.refreshtoken.Replace(" ", "");
-
-                var response = new RefreshTokenResponse();
-
-                if (cleanSerialisedRefreshToken != serialisedRefreshToken)
+                if (session == null)
+                    return new ErrorResponse("No active session found");
+                RefreshToken refreshToken;
+                JsonSerializer serialiser = new JsonSerializer();
+                using (StringReader sr = new StringReader(session.refreshtoken))
                 {
-                    string errorLog = "payload refresh token is not equal to stored refresh token";
-                    System.Diagnostics.Debug.WriteLine($"{errorLog}");
+                    using (JsonReader reader = new JsonTextReader(sr)) refreshToken = serialiser.Deserialize<RefreshToken>(reader);
                 }
-                else
+                if (!refreshToken.Token.Equals(refreshTokenPayload.RefreshToken.Token))
                 {
-                    response.AuthToken = GenerateAuthToken(identityUser).Result;
-                    response.RefreshToken = GenerateRefreshTokenAsync().Result;
-
-                    session.refreshtoken = $"{JsonConvert.SerializeObject(response.RefreshToken)}";
+                    session.refreshtoken = "Refresh token not equal to payload on RefreshToken";
+                    await _dbContext.SaveChangesAsync();
+                    return new ErrorResponse($"{session.refreshtoken}");
                 }
 
+                var newAuthToken = await GenerateAuthToken(identityUser);
+                var newRefreshToken = await GenerateRefreshTokenAsync();
+
+                string serialisedNewRefreshToken = string.Empty;
+                using (StringWriter sw = new StringWriter())
+                {
+                    using (JsonWriter writer = new JsonTextWriter(sw))
+                    {
+
+                        serialiser.Serialize(writer, newRefreshToken);
+                        serialisedNewRefreshToken = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+                    }
+                }
+                session.refreshtoken = serialisedNewRefreshToken;
                 await _dbContext.SaveChangesAsync();
 
+                var response = new RefreshTokenResponse()
+                {
+                    AuthToken = newAuthToken,
+                    RefreshToken = newRefreshToken
+                };
                 return response;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Signout failed: {ex.Message}");
+                return new ErrorResponse("Refreshing token pair failed");
             }
-            return null;
         }
         private async Task<string> GenerateAuthToken(ApplicationUser user)
         {
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Email, user.Email),
 
             };
 
@@ -949,26 +933,34 @@ namespace MM_API.Services
 
         private ClaimsPrincipal? GetTokenPrinciple(string token)
         {
-            var validation = new TokenValidationParameters
+            try
             {
-                ValidateActor = false,
-                ValidateAudience = false,
-                ValidateIssuer = false,
-                ValidateLifetime = false,
-                ValidateSignatureLast = false,
-                ValidateTokenReplay = false,
-                ValidateWithLKG = false,
+                var validation = new TokenValidationParameters
+                {
+                    ValidateActor = false,
+                    ValidateAudience = false,
+                    ValidateIssuer = false,
+                    ValidateLifetime = false,
+                    ValidateSignatureLast = false,
+                    ValidateTokenReplay = false,
+                    ValidateWithLKG = false,
 
-                ValidateIssuerSigningKey = true,
+                    ValidateIssuerSigningKey = true,
 
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!)),
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!)),
 
-                NameClaimType = ClaimTypes.Name,//"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-                RoleClaimType = ClaimTypes.Role,//"http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+                    NameClaimType = ClaimTypes.Email,//"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+                    RoleClaimType = ClaimTypes.Role,//"http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
 
-            };
-            ClaimsPrincipal claimsPrinciple = new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
-            return claimsPrinciple;
+                };
+                ClaimsPrincipal claimsPrinciple = new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
+                return claimsPrinciple;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
         }
     }
 }

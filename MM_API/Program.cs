@@ -18,7 +18,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL;
 using Npgsql;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
-using SharedGameFramework.Game;
+using MonoMonarchGameFramework.Game;
 
 namespace MM_API
 {
@@ -58,7 +58,12 @@ namespace MM_API
             {
                 options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
                 options.AddPolicy("UserPolicy", policy => policy.RequireRole("User"));
-               // options.AddPolicy("NewGamePolicy", policy => policy.RequireClaim("NewGame", "true"));
+                // options.AddPolicy("NewGamePolicy", policy => policy.RequireClaim("NewGame", "true"));
+                options.AddPolicy("AllowExpiredTokens", policy =>
+                {
+                    policy.AddAuthenticationSchemes("RefreshTokenScheme");
+                    policy.RequireAuthenticatedUser();
+                });
 
             });
 
@@ -84,7 +89,7 @@ namespace MM_API
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    NameClaimType = ClaimTypes.Name,  //"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+                    NameClaimType = ClaimTypes.Email,  //"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress",
                     RoleClaimType = ClaimTypes.Role, //"http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
 
                     ValidateIssuer = true,
@@ -100,7 +105,26 @@ namespace MM_API
                     RequireSignedTokens = true,
                     SaveSigninToken = true //required to access token from header
                 };
-            });
+            })
+                .AddJwtBearer("RefreshTokenScheme", options =>
+                {
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        NameClaimType = ClaimTypes.Email,
+                        RoleClaimType = ClaimTypes.Role,
+
+                        ValidateIssuer = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = false, // Skip lifetime validation for refresh tokens
+                        ValidateIssuerSigningKey = true,
+
+                        ValidAudience = builder.Configuration["JwtSettings:Audience"],
+                        ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]!)),
+
+                        ClockSkew = TimeSpan.Zero
+                    };
+                }); 
             #endregion
 
            // builder.Services.AddHttpContextAccessor();

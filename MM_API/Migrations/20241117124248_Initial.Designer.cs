@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MM_API.Migrations
 {
     [DbContext(typeof(MM_DbContext))]
-    [Migration("20241016193208_Initial")]
+    [Migration("20241117124248_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -98,16 +98,16 @@ namespace MM_API.Migrations
                         {
                             Id = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "fe398ad8-f694-4896-9998-940c54cb90e5",
+                            ConcurrencyStamp = "0f2b7b40-03fc-4995-85e6-ce7f298576e2",
                             CustomUserId = -999,
                             Email = "yifahnadmin@gmail.com",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
                             NormalizedEmail = "YIFAHNADMIN@GMAIL.COM",
                             NormalizedUserName = "YIFAHNADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEBfvcX3Y7K1k6qMZaAQpXEp6IQMgdE5NK2GGQNv52vQ2Rtjlt7FDKHk2G6t01/UHZQ==",
+                            PasswordHash = "AQAAAAIAAYagAAAAEKN0SmeAwjqtnU7UxkkumgpgaK/viGtJ64AX+PmGLVm+0knn4ZQ7W+2L51mHY0gflg==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "1951ebc0-770a-415d-b190-7f2a17248627",
+                            SecurityStamp = "00c7552c-4c9e-4a59-8ecc-a403174032e2",
                             TwoFactorEnabled = false,
                             UserName = "yifahnadmin"
                         });
@@ -244,6 +244,16 @@ namespace MM_API.Migrations
                     b.HasIndex("fk_user_id");
 
                     b.ToTable("t_session");
+
+                    b.HasData(
+                        new
+                        {
+                            session_id = -999,
+                            fk_user_id = -999,
+                            refreshtoken = "null",
+                            session_loggedin = new DateTimeOffset(new DateTime(2024, 11, 17, 12, 42, 48, 174, DateTimeKind.Unspecified).AddTicks(3126), new TimeSpan(0, 0, 0, 0, 0)),
+                            session_loggedout = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
+                        });
                 });
 
             modelBuilder.Entity("MM_API.Database.Postgres.DbSchema.t_Soupkitchen", b =>
@@ -256,6 +266,15 @@ namespace MM_API.Migrations
 
                     b.Property<int>("fk_user_id")
                         .HasColumnType("integer");
+
+                    b.Property<string>("soupkitchen_state")
+                        .HasColumnType("text");
+
+                    b.Property<int>("soupkitchen_updated_at_as_gametick")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("soupkitchen_updated_at_datetime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("soupkitchen_id");
 
@@ -275,14 +294,17 @@ namespace MM_API.Migrations
                     b.Property<int>("fk_user_id")
                         .HasColumnType("integer");
 
-                    b.Property<int>("treasury_coin")
+                    b.Property<string>("treasury_state")
+                        .HasColumnType("jsonb");
+
+                    b.Property<long>("treasury_total")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("treasury_updated_at_as_gametick")
                         .HasColumnType("integer");
 
-                    b.Property<double>("treasury_gainrate")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("treasury_multiplier")
-                        .HasColumnType("double precision");
+                    b.Property<DateTimeOffset>("treasury_updated_at_datetime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("treasury_id");
 

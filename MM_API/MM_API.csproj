@@ -30,11 +30,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.0.2" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.0.2" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
     <PackageReference Include="Npgsql.Json.NET" Version="8.0.4" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.7.2" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,8 +45,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\PSQLLibrary\PSQLLibrary\PSQLLibrary\SharedGameFramework.csproj" />
-    <ProjectReference Include="..\..\..\..\SharedLibrary\SharedLibrary\SharedLibrary\SharedNetworkFramework.csproj" />
+    <ProjectReference Include="..\..\..\..\MonoMonarchSharedLibrary\MonoMonarchGameFramework\MonoMonarchGameFramework.csproj" />
+    <ProjectReference Include="..\..\..\..\MonoMonarchSharedLibrary\MonoMonarchNetworkFramework\MonoMonarchNetworkFramework.csproj" />
   </ItemGroup>
 
 </Project>

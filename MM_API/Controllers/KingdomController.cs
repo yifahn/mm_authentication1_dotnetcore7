@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MM_API.Services;
-using SharedNetworkFramework.Game.Kingdom;
-using SharedNetworkFramework.Game.Kingdom.Map;
+using MonoMonarchNetworkFramework;
+using MonoMonarchNetworkFramework.Game.Kingdom;
+using MonoMonarchNetworkFramework.Game.Kingdom.Map;
 
 
 namespace MM_API.Controllers
@@ -26,24 +27,25 @@ namespace MM_API.Controllers
             }
             try
             {
-                var result = await _kingdomService.LoadKingdom();
-                if (result is IKingdomLoadResponse)
+                var result = await _kingdomService.LoadKingdomAsync();
+                if (result is KingdomLoadResponse)
                 {
+
                     return Ok(result);
                 }
-                else
+                else if (result is ErrorResponse)
                 {
-                    return StatusCode(500, "Unexpected Error Occurred"); //incorrect error code - unsure how to handle 
+                    return StatusCode(400, result); //incorrect error code - unsure how to handle 
                 }
+                else return StatusCode(500);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Load map failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
+                System.Diagnostics.Debug.WriteLine($"Kingdom load failed: {ex.Message}");
+                return StatusCode(500);
             }
         }
 
-        //localhost:5223/kingdom/updatemap
         [Authorize(Policy = "UserPolicy")]
         [HttpPatch("updatemap")]
         public async Task<ActionResult<IMapUpdateResponse>> UpdateMap([FromBody] MapUpdatePayload payload)
@@ -54,20 +56,21 @@ namespace MM_API.Controllers
             }
             try
             {
-                var result = await _kingdomService.UpdateMap(payload);
-                if (result is IMapUpdateResponse)
+                var result = await _kingdomService.UpdateMapAsync(payload);
+                if (result is MapUpdateResponse)
                 {
                     return Ok(result);
                 }
-                else
+                else if (result is ErrorResponse)
                 {
-                    return StatusCode(500, "Unexpected Error Occurred"); //incorrect error code - unsure how to handle 
+                    return StatusCode(400, $"{result}"); //incorrect error code - unsure how to handle 
                 }
+                else return StatusCode(500);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Update map failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
+                return StatusCode(500);
             }
         }
 

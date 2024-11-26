@@ -1,13 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using MM_API.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
+
 using MM_API.Database.Postgres;
-using SharedNetworkFramework.Authentication.RefreshToken;
-using SharedNetworkFramework.Authentication.Register;
-using SharedNetworkFramework.Authentication.Login;
-using SharedNetworkFramework.Authentication.Logout;
+using MM_API.Services;
+
+using MonoMonarchNetworkFramework.Authentication.RefreshToken;
+using MonoMonarchNetworkFramework.Authentication.Register;
+using MonoMonarchNetworkFramework.Authentication.Login;
+using MonoMonarchNetworkFramework.Authentication.Logout;
+using MonoMonarchNetworkFramework;
 
 namespace MM_API.Controllers
 {
@@ -34,22 +37,23 @@ namespace MM_API.Controllers
             }
             try
             {
-                var user = new ApplicationUser { UserName = payload.Email };
+                //var user = new ApplicationUser { UserName = payload.Email };
                 var result = await _authenticationService.RegisterAsync(payload);
-                if (result is IRegistrationResponse)
+                if (result is RegistrationResponse)
                 {
 
                     return Ok(result);
                 }
-                else
+                else if (result is ErrorResponse)
                 {
-                    return StatusCode(500, "Unexpected Error Occurred"); //incorrect error code - unsure how to handle 
+                    return StatusCode(400, result);
                 }
+                else return StatusCode(500);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
+                return StatusCode(500);
             }
         }
 
@@ -65,20 +69,21 @@ namespace MM_API.Controllers
             try
             {
                 var result = await _authenticationService.LoginAsync(payload);
-                if (result is ILoginResponse)
+                if (result is LoginResponse)
                 {
+
                     return Ok(result);
                 }
-                else
+                else if (result is ErrorResponse)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Unexpected Error Occurred");
-                    return StatusCode(500, "Unexpected Error Occurred");
+                    return StatusCode(400, result);
                 }
+                else return StatusCode(500);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
+                System.Diagnostics.Debug.WriteLine($"Login failed: {ex.Message}");
+                return StatusCode(500);
             }
         }
 
@@ -95,31 +100,28 @@ namespace MM_API.Controllers
             try
             {
                 var result = await _authenticationService.LogoutAsync(payload);
-                if (result is ILogoutResponse)
+                if (result is LogoutResponse)
                 {
+
                     return Ok(result);
                 }
-                else if (result == null)
+                else if (result is ErrorResponse)
                 {
-                    System.Diagnostics.Debug.WriteLine($"result == null");
-                    return StatusCode(500, "result == null");
+                    return StatusCode(400, result);
                 }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"Unexpected Error Occurred");
-                    return StatusCode(500, "Unexpected Error Occurred");
-                }
+                else return StatusCode(500);
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Logout failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
+                return StatusCode(500);
             }
         }
 
         //localhost:5223/authentication/refresh
         // [RequireHttps]
-        [Authorize(Policy = "UserPolicy")]
+        //[Authorize(Policy = "UserPolicy")]
+        [Authorize(Policy = "AllowExpiredTokens")]
         [HttpPost("refresh")]
         public async Task<ActionResult<IRefreshTokenResponse>> RefreshAsync([FromBody] RefreshTokenPayload payload)
         {
@@ -130,20 +132,23 @@ namespace MM_API.Controllers
             try
             {
                 var result = await _authenticationService.RefreshTokenAsync(payload);
-                if (result is IRefreshTokenResponse)
+                if (result is RefreshTokenResponse)
                 {
                     return Ok(result);
                 }
-                else
+                else if (result is ErrorResponse errorResponse)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Unexpected Error Occurred");
-                    return StatusCode(500, "Unexpected Error Occurred");
+                    if (errorResponse.ErrorMessage.Equals("Payload refresh token expired"))
+                        return StatusCode(401, result);
+                    else
+                        return StatusCode(400, result);
                 }
+                else return StatusCode(500);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Refresh failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
+                System.Diagnostics.Debug.WriteLine($"Logout failed: {ex.Message}");
+                return StatusCode(500);
             }
         }
     }

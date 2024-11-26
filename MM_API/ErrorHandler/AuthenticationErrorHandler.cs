@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
-using SharedNetworkFramework.Authentication.Register;
-using SharedNetworkFramework.Authentication.Login;
+using MonoMonarchNetworkFramework.Authentication.Register;
+using MonoMonarchNetworkFramework.Authentication.Login;
 
 namespace MM_API.ErrorHandler
 {

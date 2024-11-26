@@ -1,53 +1,59 @@
-﻿using Newtonsoft.Json;
+﻿using System.Security.Claims;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
-using MM_API.Database.Postgres;
-using System.Security.Claims;
 
-using SharedGameFramework.Game.Character;
-using SharedGameFramework.Game.Character.Attribute;
-using SharedGameFramework.Game.Character.Attribute.CharacterLevel;
-using SharedGameFramework.Game.Character.Attribute.Constitution;
-using SharedGameFramework.Game.Character.Attribute.Defence;
-using SharedGameFramework.Game.Character.Attribute.Luck;
-using SharedGameFramework.Game.Character.Attribute.Stamina;
-using SharedGameFramework.Game.Character.Attribute.Strength;
-
-using SharedGameFramework.Game.Armoury.Equipment;
-using SharedGameFramework.Game.Armoury.Equipment.Armour;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Arms;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Hands;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Head;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Legs;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Feet;
-using SharedGameFramework.Game.Armoury.Equipment.Armour.Torso;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon.Axe;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon.Spear;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon.Staff;
-using SharedGameFramework.Game.Armoury.Equipment.Weapon.Sword;
-using SharedGameFramework.Game.Armoury.Equipment.Jewellery;
-using SharedGameFramework.Game.Armoury.Equipment.Jewellery.Amulet;
-using SharedGameFramework.Game.Armoury.Equipment.Jewellery.Ring;
-
-using SharedGameFramework.Game.Soupkitchen;
+using Newtonsoft.Json;
 
 using Npgsql;
 
 using NpgsqlTypes;
-using SharedGameFramework.Game.Kingdom.Map;
+
+using MM_API.Database.Postgres;
 using MM_API.Database.Postgres.DbSchema;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode;
-using SharedGameFramework.Game;
-using SharedNetworkFramework.Game.Character.Inventory;
-using SharedGameFramework.Game.Armoury;
-using SharedNetworkFramework.Game.Soupkitchen.Claim;
+
+using MonoMonarchGameFramework.Game;
+using MonoMonarchGameFramework.Game.Character;
+using MonoMonarchGameFramework.Game.Character.Attribute;
+using MonoMonarchGameFramework.Game.Character.Attribute.CharacterLevel;
+using MonoMonarchGameFramework.Game.Character.Attribute.Constitution;
+using MonoMonarchGameFramework.Game.Character.Attribute.Defence;
+using MonoMonarchGameFramework.Game.Character.Attribute.Luck;
+using MonoMonarchGameFramework.Game.Character.Attribute.Stamina;
+using MonoMonarchGameFramework.Game.Character.Attribute.Strength;
+using MonoMonarchGameFramework.Game.Armoury;
+using MonoMonarchGameFramework.Game.Armoury.Equipment;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Arms;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Hands;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Head;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Legs;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Feet;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Armour.Torso;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon.Axe;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon.Spear;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon.Staff;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Weapon.Sword;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery.Amulet;
+using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery.Ring;
+using MonoMonarchGameFramework.Game.Soupkitchen;
+using MonoMonarchGameFramework.Game.Kingdom.Map;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode;
+
+using MonoMonarchNetworkFramework;
+using MonoMonarchNetworkFramework.Game.Character.Inventory;
+using MonoMonarchNetworkFramework.Game.Soupkitchen.Claim;
+using MonoMonarchNetworkFramework.Game.Soupkitchen;
+using MonoMonarchNetworkFramework.Game.Kingdom;
 
 namespace MM_API.Services
 {
     public interface ISoupkitchenService
     {
         public Task<IClaimResponse> ClaimSoup();
+        public Task<ISoupkitchenLoadResponse> LoadSoupkitchenAsync();
     }
     #region Production
     public class SoupkitchenService : ISoupkitchenService
@@ -73,6 +79,18 @@ namespace MM_API.Services
             }
             return null;
         }
+        public async Task<ISoupkitchenLoadResponse> LoadSoupkitchenAsync()
+        {
+            try
+            {
+
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Load character failed: {ex.Message}");
+            }
+            return null;
+        }
     }
     #endregion
     #region Development
@@ -86,6 +104,17 @@ namespace MM_API.Services
             _dbContext = dbContext;
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
+        }
+        public async Task<ISoupkitchenLoadResponse> LoadSoupkitchenAsync()
+        {
+            var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
+            var user = await _userManager.FindByIdAsync(userId);
+
+            t_Soupkitchen soupkitchen = await _dbContext.t_soupkitchen.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
+            return new SoupkitchenLoadResponse()
+            {
+                SoupkitchenState = soupkitchen.soupkitchen_state,
+            };
         }
         public async Task<IClaimResponse> ClaimSoup()
         {
@@ -252,13 +281,22 @@ namespace MM_API.Services
                         }
                         break;
                 }
+                t_Soupkitchen soupkitchen = null;
                 t_Character character = null;
                 t_Armoury armoury = null;
 
+                SoupkitchenState soupKitchenState = null;
                 EquipmentInventory armouryInventory = null;
                 CharacterSheet characterSheet = null;
 
                 JsonSerializer serialiser = new JsonSerializer();
+
+                soupkitchen = await _dbContext.t_soupkitchen.FirstAsync(u => u.fk_user_id == user.CustomUserId);
+                using (StringReader sr = new StringReader(soupkitchen.soupkitchen_state))
+                {
+                    using (JsonReader reader = new JsonTextReader(sr)) soupKitchenState = serialiser.Deserialize<SoupkitchenState>(reader); 
+                }
+
                 serialiser.Converters.Add(new DeserialisationSupport());
                 if (result is IEquipable)
                 {
@@ -298,6 +336,8 @@ namespace MM_API.Services
                 }
                 serialiser.Converters.Clear();
 
+                DateTimeOffset currentTickAsDateTime = GameUtilities.GetCurrentTickAsDateTime();
+                var updateStateResult = soupKitchenState.UpdateStateOnClaim(currentTickAsDateTime, soupkitchen.soupkitchen_updated_at_datetime.AddSeconds((5 * soupKitchenState.TotalNumCooldowns) + 5));
 
                 using (var transaction = await _dbContext.Database.BeginTransactionAsync())
                 {
@@ -356,28 +396,44 @@ namespace MM_API.Services
                             }
                         }
 
+
+                        if (updateStateResult.Item2 == -1)
+                            return new ErrorResponse("ClaimsCache < 0");
+
+                        using (StringWriter sw = new StringWriter())
+                        {
+                            using (JsonWriter writer = new JsonTextWriter(sw))
+                            {
+                                serialiser.Serialize(writer, soupKitchenState);
+                                soupkitchen.soupkitchen_state = sw.ToString();
+                                sw.GetStringBuilder().Clear();
+                            }
+                        }
+                        soupkitchen.soupkitchen_updated_at_as_gametick += (int)(currentTickAsDateTime - soupkitchen.soupkitchen_updated_at_datetime).TotalSeconds / 5;
+                        soupkitchen.soupkitchen_updated_at_datetime = currentTickAsDateTime;
                         await _dbContext.SaveChangesAsync();
                         transaction.Commit();
 
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back: {ex.Message}");  //add to dev log with timestamp and relevent game state details
                         await transaction.RollbackAsync();
-                        return new ClaimResponse() { Success = false, ErrorMessage = $"Transaction failed, rolling back. Contact dev support for more information." };
+                        return new ErrorResponse("Transaction failed, rolling back");
                     }
 
                     return new ClaimResponse()
                     {
-                        Success = true,
-                        ClaimedItem = JsonConvert.SerializeObject(result)
+                        ClaimedItem = JsonConvert.SerializeObject(result),
+                        ClaimCooldownExpiryDateTime = updateStateResult.Item1,
+                        ClaimCooldownExpiryOnTick = updateStateResult.Item2,
+                        
+
                     };
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Claim soup failed: {ex.Message}");
-                return new ClaimResponse() { Success = false, ErrorMessage = $"Claim soup failed. Contact dev support for more information." };
+                return new ErrorResponse("Claim soup failed");
             }
         }
     }

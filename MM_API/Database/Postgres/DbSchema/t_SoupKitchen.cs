@@ -13,6 +13,11 @@ namespace MM_API.Database.Postgres.DbSchema
 
         [ForeignKey("fk_user_id")]
         public t_User User { get; set; }
+        public DateTimeOffset soupkitchen_updated_at_datetime { get; set; }
+        public int soupkitchen_updated_at_as_gametick { get; set; }
+
+        [Column(TypeName = "jsonb")]
+        public string soupkitchen_state { get; set; }
     }
 }
 

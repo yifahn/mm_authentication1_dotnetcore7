@@ -75,6 +75,27 @@ namespace MM_API
                 PasswordHash = hasher.HashPassword(null, "s3cur4p4$$w0rd") //development password: secure password elsewhere rather than codebase - github reasons
             });
 
+            modelBuilder.Entity<t_Session>().HasData(new t_Session
+            {
+                session_id = -999, // Unique session ID
+                fk_user_id = t_UserIdInt_Admin, // Foreign key to t_User (admin user)
+                refreshtoken = "null", // Example refresh token (can be generated securely)
+                session_loggedin = DateTimeOffset.UtcNow.UtcDateTime, // Set to the current time as the start time
+                session_loggedout = DateTimeOffset.MinValue // Placeholder for logged out time (set dynamically)
+            });
+
+
+            //modelBuilder.Entity<t_Treasury>().HasData(new t_Treasury
+            //{
+            //    //session_id = 0, // Unique session ID
+            //    fk_user_id = t_UserIdInt_Admin, // Foreign key to t_User (admin user)
+            //    treasury_updated_at_datetime = DateTimeOffset.UtcNow.UtcDateTime,
+            //    treasury_updated_at_as_gametick = 0,
+            //    treasury_state = null,
+            //    treasury_total = 0,
+
+            //});
+
             //modelBuilder.Entity<t_User>().HasData(new t_User
             //{
             //    user_id = t_UserIdInt_User,

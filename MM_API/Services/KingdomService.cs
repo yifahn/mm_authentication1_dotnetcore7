@@ -1,48 +1,54 @@
 ﻿using System.Security.Claims;
+using System.Xml.Linq;
+using System.Diagnostics;
+using System.Reflection.Metadata.Ecma335;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+
+using Npgsql;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 
 using MM_API.Database.Postgres.DbSchema;
 using MM_API.Database.Postgres;
 
-using SharedNetworkFramework.Game.Kingdom.Map;
+using MonoMonarchNetworkFramework.Game.Kingdom.Map;
 
-using SharedGameFramework.Game.Kingdom.Map;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode.Grassland;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode.TownCentre;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode.House;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode.Library;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode.Factory;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode.Road;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode.Blockade;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode.MTower;
-using SharedGameFramework.Game.Kingdom.Map.BaseNode.Wonder;
+using MonoMonarchGameFramework.Game.Kingdom.Map;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.Grassland;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.TownCentre;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.House;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.Library;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.Factory;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.Road;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.Blockade;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.MTower;
+using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.Wonder;
 
-using Npgsql;
+using MonoMonarchNetworkFramework.Game.Kingdom;
+using MonoMonarchGameFramework.Game.Armoury.Equipment;
+using MonoMonarchGameFramework.Game;
 
-using System.Reflection.Metadata.Ecma335;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
-using SharedNetworkFramework.Game.Kingdom;
-using SharedGameFramework.Game.Armoury.Equipment;
-using SharedGameFramework.Game;
-using System.Xml.Linq;
-using System.Diagnostics;
+using MonoMonarchGameFramework.Game.Treasury.Currency;
+using MonoMonarchGameFramework.Game.Treasury;
+using MonoMonarchGameFramework.Game.Treasury.GoldBag;
+using MonoMonarchNetworkFramework;
+using System.Numerics;
 
 namespace MM_API.Services
 {
     public interface IKingdomService
     {
-        public Task<IKingdomLoadResponse> LoadKingdom();
+        public Task<IKingdomLoadResponse> LoadKingdomAsync();
         /*  public Task<IMapLoadResponse> LoadMap();*///deprecate this for loadkingdom - on load, load all components - update individually
-        public Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload payload);
+        public Task<IMapUpdateResponse> UpdateMapAsync(MapUpdatePayload payload);
 
 
     }
@@ -59,7 +65,7 @@ namespace MM_API.Services
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
         }
-        public async Task<IKingdomLoadResponse> LoadKingdom()
+        public async Task<IKingdomLoadResponse> LoadKingdomAsync()
         {
             var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
             var user = await _userManager.FindByIdAsync(userId);
@@ -68,23 +74,11 @@ namespace MM_API.Services
             var loadKingdomResponse = new KingdomLoadResponse()
             {
                 KingdomName = kingdom.kingdom_name,
-                // KingdomMap = kingdom.kingdom_map
             };
             return loadKingdomResponse;
         }
-        //public async Task<IMapLoadResponse> LoadMap() 
-        //{
-        //    var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
-        //    var user = await _userManager.FindByIdAsync(userId);
-
-        //    t_Kingdom map = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
-        //    var loadMapResponse = new MapLoadResponse()
-        //    {
-        //        KingdomMap = map.kingdom_map
-        //    };
-        //    return loadMapResponse;
-        //}
-        public async Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload mapUpdatePayload)
+  
+        public async Task<IMapUpdateResponse> UpdateMapAsync(MapUpdatePayload mapUpdatePayload)
         {
             try
             {
@@ -169,7 +163,7 @@ namespace MM_API.Services
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
         }
-        public async Task<IKingdomLoadResponse> LoadKingdom()
+        public async Task<IKingdomLoadResponse> LoadKingdomAsync()
         {
             var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
             var user = await _userManager.FindByIdAsync(userId);
@@ -177,10 +171,10 @@ namespace MM_API.Services
             t_Kingdom kingdom = await _dbContext.t_kingdom.FirstOrDefaultAsync(m => m.fk_user_id == user.CustomUserId);
             return new KingdomLoadResponse()
             {
+
                 KingdomName = kingdom.kingdom_name,
                 KingdomMap = kingdom.kingdom_map,
-
-                
+                KingdomMapNodeNums = kingdom.kingdom_num_node_types
             };
         }
         //    public async Task<IMapLoadResponse> LoadMap() //deprecate this for loadkingdom - on load, load all components - update individually
@@ -206,10 +200,18 @@ namespace MM_API.Services
  * ...
  */
         //NodeType int representations GL==0, TC==1, H==2, L==3, F==4, R==5, B==6, MT==7, W==8
-        public async Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload mapUpdatePayload)
+        public async Task<IMapUpdateResponse> UpdateMapAsync(MapUpdatePayload mapUpdatePayload)
         {
             try
             {
+                if (mapUpdatePayload.NodeIndexes.Length > 1979 || mapUpdatePayload.NodeIndexes.Length < 0
+                    || mapUpdatePayload.NodeIndexes.Distinct().Count() != mapUpdatePayload.NodeIndexes.Length
+                    || mapUpdatePayload.NodeIndexes.Length != mapUpdatePayload.NodeTypes.Length)
+                {
+                    return new ErrorResponse("Malformed payload detected");
+                }
+                    
+
                 var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(u => u.Type == $"{ClaimTypes.NameIdentifier}").Value;
                 var user = await _userManager.FindByIdAsync(userId);
                 int[] nodeIndexes = mapUpdatePayload.NodeIndexes;
@@ -219,6 +221,8 @@ namespace MM_API.Services
                 t_Treasury treasury = _dbContext.t_treasury.FirstOrDefault(u => u.fk_user_id == user.CustomUserId);
 
                 Map map = new Map();
+                TreasuryState treasuryState = null;
+
 
                 JsonSerializer serialiser = new JsonSerializer();
                 serialiser.Converters.Add(new DeserialisationSupport());
@@ -229,42 +233,56 @@ namespace MM_API.Services
                         map.NodeArray = serialiser.Deserialize<BaseNode[]>(reader);
                     }
                 }
+                ///
                 serialiser.Converters.Clear();
+                ///
+                using (StringReader sr = new StringReader(treasury.treasury_state))
+                {
+                    using (JsonReader reader = new JsonTextReader(sr))
+                    {
+                        treasuryState = serialiser.Deserialize<TreasuryState>(reader);
+                    }
+                }
                 //serialiser = null;
+               
+                var result = treasuryState.UpdateCoinOnElapsedTicks(treasury.treasury_total, treasury.treasury_updated_at_datetime);
+                treasury.treasury_total = result.Item1;
+                treasury.treasury_updated_at_as_gametick += result.Item2;
+                treasury.treasury_updated_at_datetime = result.Item3;
+
+                
 
                 //check if building action violates game rules
-                List<BaseNode> nodesToRemove = new List<BaseNode>();
+                List <BaseNode> nodesToRemove = new List<BaseNode>();
                 int coinRefund = 0;
                 int coinCostTotal = 0;
                 int[] totalNumBuildings = kingdom.kingdom_num_node_types;
                 for (int i = 0; i < nodeIndexes.Length; i++)
                 {
-                    //get refund amount from selling buildings
-                    nodesToRemove.Add(map.NodeArray[nodeIndexes[i]]);
+                    //game rule check
+                    if (map.NodeArray[nodeIndexes[i]].NodeType != (int)NodeTypeEnum.Road && nodeTypes[i] == (int)NodeTypeEnum.Blockade)
+                        return new ErrorResponse("Malformed payload detected");
+                    //if (nodeIndexes[i] < 0 || nodeIndexes[i] > 1979)
+                    //    return new MapUpdateResponse { Success = false, ErrorMessage = $"I see you." };
 
+                    //remove enums... such shit code................. - unused props on nodes for cost
+
+                    //get all nodes to remove
+                    nodesToRemove.Add(map.NodeArray[nodeIndexes[i]]);
+                    //get refund amount from selling buildings
                     NodeTypeEnum nodeType1 = (NodeTypeEnum)map.NodeArray[nodeIndexes[i]].NodeType;
                     NodeCostEnum nodeCost1 = GetNodeCost(nodeType1);
                     coinRefund += (int)nodeCost1 / 2;
-
                     //get total cost of new buildings
                     NodeTypeEnum nodeType2 = (NodeTypeEnum)nodeTypes[i];
                     NodeCostEnum nodeCost2 = GetNodeCost(nodeType2);
                     coinCostTotal += (int)nodeCost2;
 
-                    //get total number of each nodetype after map update
+                    //update total number of each nodetype
                     totalNumBuildings[(int)nodeType1]--;
                     totalNumBuildings[(int)nodeType2]++;
 
-                    if (map.NodeArray[nodeIndexes[i]].NodeType != (int)NodeTypeEnum.Road && nodeTypes[i] == (int)NodeTypeEnum.Blockade) return new MapUpdateResponse() { Success = false, ErrorMessage = "violates rule: cannot build build blockade on any nodetype except road" }; //violates rule: cannot build build blockade on any nodetype except road
-                }
-
-                //expand on the below line of code's error message
-                if (!MapService.ValidateBuildActionByNumOfBuildings(totalNumBuildings)) return new MapUpdateResponse() { Success = false, ErrorMessage = "violates a building restriction rule by nodetype totals" }; //violates building restrictions by nodetype totals
-                if (treasury.treasury_coin + coinRefund < coinCostTotal) return new MapUpdateResponse() { Success = false, ErrorMessage = "insufficient funds" }; //insufficient funds
-
-
-                for (int i = 0; i < nodeIndexes.Length; i++)
-                {
+                    //if (map.NodeArray[nodeIndexes[i]].NodeType != (int)NodeTypeEnum.Road && nodeTypes[i] == (int)NodeTypeEnum.Blockade) return new MapUpdateResponse() { Success = false, ErrorMessage = "violates rule: cannot build build blockade on any nodetype except road" }; //violates rule: cannot build build blockade on any nodetype except road
                     map.NodeArray[nodeIndexes[i]] = nodeTypes[i] switch
                     {
                         0 => new Grassland
@@ -332,13 +350,47 @@ namespace MM_API.Services
                         },
 
                     };
+
                 }
-               
+                //update treasury state
+                treasuryState.UpdateCoinGainRate(totalNumBuildings);
+                treasuryState.UpdateCoinMultiplier(totalNumBuildings);
+
+                //expand on the below line of code's error message
+                if (!MapService.ValidateBuildActionByNumOfBuildings(totalNumBuildings))
+                    return new ErrorResponse("Malformed payload detected");
+
+
+                ///
+
+
+                ///coin
+                ////potential bug: refund > cost == .Subtract() not handling inverse
+                //long operationRemainder = treasuryState.SubtractCoin(coinCostTotal - coinRefund);
+                BigInteger remainder = 0;
+                if (coinRefund > coinCostTotal)
+                    remainder = treasuryState.AddCoin(coinRefund - coinCostTotal);
+                else if ((coinRefund < coinCostTotal))
+                    remainder = treasuryState.SubtractCoin(coinCostTotal - coinRefund);
+                if (remainder > 0)
+                    return new ErrorResponse("Insufficient coin");
+
+
                 using (var transaction = await _dbContext.Database.BeginTransactionAsync())
                 {
                     try
                     {
                         string serialisedKingdomMap = string.Empty;
+                        string serialisedTreasuryState = string.Empty;
+                        using (StringWriter sw = new StringWriter())
+                        {
+                            using (JsonWriter writer = new JsonTextWriter(sw))
+                            {
+                                serialiser.Serialize(writer, treasuryState);
+                                serialisedTreasuryState = sw.ToString();
+                                sw.GetStringBuilder().Clear();
+                            }
+                        }
 
                         using (StringWriter sw = new StringWriter())
                         {
@@ -349,6 +401,7 @@ namespace MM_API.Services
                                 sw.GetStringBuilder().Clear();
                             }
                         }
+                        treasury.treasury_state = serialisedTreasuryState;
 
                         kingdom.kingdom_map = serialisedKingdomMap;
                         kingdom.kingdom_num_node_types = totalNumBuildings;
@@ -359,22 +412,24 @@ namespace MM_API.Services
 
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Transaction failed, rolling back: {ex.Message}"); //add to dev log
                         await transaction.RollbackAsync();
-                        return new MapUpdateResponse() { Success = false, ErrorMessage = $"Transaction failed, rolling back. Contact dev support for more information." };
+                        return new ErrorResponse("Transaction failed, rolling back");
                     }
                 }
 
 
                 return new MapUpdateResponse()
                 {
-                    Success = true
+                    CoinBagArray = treasuryState.CoinBagArray,
+                    //CoinTotal = treasuryState.GetTotalCoin(),
+                    CoinUpdateDateTime = treasury.treasury_updated_at_datetime,
+                    CoinUpdateOnTick = treasury.treasury_updated_at_as_gametick,
+                    
                 };
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Update map failed: {ex.Message}"); //add to dev log
-                return new MapUpdateResponse() { Success = false, ErrorMessage = $"Update map failed. Contact dev support for more information." };
+                return new ErrorResponse("Update map failed");
             }
         }
         public static (string, NpgsqlParameter[]) GenerateMapUpdateSQL(int nodeIndex, int nodeType, int userId)

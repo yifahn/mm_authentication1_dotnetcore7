@@ -1,9 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using SharedGameFramework.Game.Armoury;
 using System.Diagnostics.CodeAnalysis;
+
 using MM_API.Database.Postgres.DbSchema;
-using SharedGameFramework.Game.Armoury.Equipment;
+
+using MonoMonarchGameFramework.Game.Armoury;
+using MonoMonarchGameFramework.Game.Armoury.Equipment;
 
 namespace MM_API.Database.Postgres.DbSchema
 {

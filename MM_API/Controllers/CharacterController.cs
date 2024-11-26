@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MM_API.Services;
-using SharedNetworkFramework.Game.Kingdom.Map;
-using SharedNetworkFramework.Game.Character;
-using SharedNetworkFramework.Game.Character.Inventory;
-using SharedNetworkFramework.Game.Character.Sheet;
-using SharedNetworkFramework.Game.Character.State;
+using MonoMonarchNetworkFramework.Game.Kingdom.Map;
+using MonoMonarchNetworkFramework.Game.Character;
+using MonoMonarchNetworkFramework.Game.Character.Inventory;
+using MonoMonarchNetworkFramework.Game.Character.Sheet;
+using MonoMonarchNetworkFramework.Game.Character.State;
+using MonoMonarchNetworkFramework;
 
 namespace MM_API.Controllers
 {
@@ -28,20 +29,22 @@ namespace MM_API.Controllers
             }
             try
             {
-                var result = await _characterService.LoadCharacter();
-                if (result is ICharacterLoadResponse)
+                var result = await _characterService.LoadCharacterAsync();
+                if (result is CharacterLoadResponse)
                 {
+
                     return Ok(result);
                 }
-                else
+                else if (result is ErrorResponse)
                 {
-                    return StatusCode(500, "Unexpected Error Occurred"); 
+                    return StatusCode(400, result); //incorrect error code - unsure how to handle 
                 }
+                else return StatusCode(500);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Load map failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
+                System.Diagnostics.Debug.WriteLine($"Character load failed: {ex.Message}");
+                return StatusCode(500);
             }
         }
         [Authorize(Policy = "UserPolicy")]
@@ -55,19 +58,21 @@ namespace MM_API.Controllers
             try
             {
                 var result = await _characterService.UpdateCharacterInventory(inventoryUpdatePayload);
-                if (result is IInventoryUpdateResponse)
+                if (result is InventoryUpdateResponse)
                 {
+
                     return Ok(result);
                 }
-                else
+                else if (result is ErrorResponse)
                 {
-                    return StatusCode(500, "Unexpected Error Occurred"); 
+                    return StatusCode(400, result); //incorrect error code - unsure how to handle 
                 }
+                else return StatusCode(500);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Load map failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
+                System.Diagnostics.Debug.WriteLine($"Charater update failed: {ex.Message}");
+                return StatusCode(500);
             }
         }
         [Authorize(Policy = "UserPolicy")]
@@ -81,19 +86,21 @@ namespace MM_API.Controllers
             try
             {
                 var result = await _characterService.UpdateCharacterSheet(sheetUpdatePayload);
-                if (result is ISheetUpdateResponse)
+                if (result is SheetUpdateResponse)
                 {
+
                     return Ok(result);
                 }
-                else
+                else if (result is ErrorResponse)
                 {
-                    return StatusCode(500, "Unexpected Error Occurred"); //incorrect error code - unsure how to handle 
+                    return StatusCode(400, result); //incorrect error code - unsure how to handle 
                 }
+                else return StatusCode(500);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Load map failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
+                System.Diagnostics.Debug.WriteLine($"Sheet update failed: {ex.Message}");
+                return StatusCode(500);
             }
         }
         [Authorize(Policy = "UserPolicy")]
@@ -107,19 +114,21 @@ namespace MM_API.Controllers
             try
             {
                 var result = await _characterService.UpdateCharacterState(stateUpdatePayload);
-                if (result is IStateUpdateResponse)
+                if (result is StateUpdateResponse)
                 {
+
                     return Ok(result);
                 }
-                else
+                else if (result is ErrorResponse)
                 {
-                    return StatusCode(500, "Unexpected Error Occurred"); //incorrect error code - unsure how to handle 
+                    return StatusCode(400, result); //incorrect error code - unsure how to handle 
                 }
+                else return StatusCode(500);
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Load map failed: {ex.Message}");
-                return StatusCode(500, "Internal Server Error");
+                System.Diagnostics.Debug.WriteLine($"State update failed: {ex.Message}");
+                return StatusCode(500);
             }
         }
     }

@@ -1,11 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using SharedGameFramework.Game.Character;
+
 using System.Diagnostics.CodeAnalysis;
 using MM_API.Database.Postgres.DbSchema;
-using SharedGameFramework.Game.Armoury.Equipment;
-using SharedGameFramework.Game.Character.Attribute;
-using SharedGameFramework.Game.Character.State;
+using MonoMonarchGameFramework.Game.Armoury.Equipment;
+using MonoMonarchGameFramework.Game.Character.Attribute;
+using MonoMonarchGameFramework.Game.Character;
 
 namespace MM_API.Database.Postgres.DbSchema
 {
@@ -17,14 +17,17 @@ namespace MM_API.Database.Postgres.DbSchema
         [ForeignKey("fk_user_id")]
         public t_User User { get; set; }
 
+
         public string character_name { get; set; }
         public bool character_isalive { get; set; }
 
-        [Column(TypeName = "jsonb")]
-        public string character_attributes { get; set; }
 
         [Column(TypeName = "jsonb")]
         public string character_state { get; set; }
+
+
+        [Column(TypeName = "jsonb")]
+        public string character_attributes { get; set; }
 
 
         [Column(TypeName = "jsonb")]
