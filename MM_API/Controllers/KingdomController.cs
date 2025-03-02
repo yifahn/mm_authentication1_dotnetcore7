@@ -48,7 +48,7 @@ namespace MM_API.Controllers
 
         [Authorize(Policy = "UserPolicy")]
         [HttpPatch("updatemap")]
-        public async Task<ActionResult<IMapUpdateResponse>> UpdateMap([FromBody] MapUpdatePayload payload)
+        public async Task<ActionResult<IKingdomMapUpdateResponse>> UpdateMap([FromBody] KingdomMapUpdatePayload payload)
         {
             if (!ModelState.IsValid)
             {
@@ -56,8 +56,8 @@ namespace MM_API.Controllers
             }
             try
             {
-                var result = await _kingdomService.UpdateMapAsync(payload);
-                if (result is MapUpdateResponse)
+                var result = await _kingdomService.UpdateKingdomMapAsync(payload);
+                if (result is KingdomMapUpdateResponse)
                 {
                     return Ok(result);
                 }

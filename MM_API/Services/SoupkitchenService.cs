@@ -39,8 +39,8 @@ using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery;
 using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery.Amulet;
 using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery.Ring;
 using MonoMonarchGameFramework.Game.Soupkitchen;
-using MonoMonarchGameFramework.Game.Kingdom.Map;
-using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode;
+using MonoMonarchGameFramework.Game.Kingdom;
+using MonoMonarchGameFramework.Game.Kingdom.Nodes;
 
 using MonoMonarchNetworkFramework;
 using MonoMonarchNetworkFramework.Game.Character.Inventory;
@@ -139,8 +139,8 @@ namespace MM_API.Services
                 //armour
                 //weapon
                 //jewellery
-                int randomEquipment = new Random().Next(0, 3);
-
+                //int randomEquipment = new Random().Next(0, 3);
+                int randomEquipment = 0;
                 //arms
                 //feet
                 //hands
@@ -163,6 +163,7 @@ namespace MM_API.Services
                 int randomProperty1 = new Random().Next(1, 101);
                 int randomProperty2 = new Random().Next(1, 101);
 
+
                 IClaimable result = null;
 
 
@@ -180,6 +181,7 @@ namespace MM_API.Services
                         };
                         break;
                     case 1:
+                        
                         switch (randomEquipment)
                         {
                             case 0: //armour
@@ -189,37 +191,37 @@ namespace MM_API.Services
                                     {
                                         ArmourTier = randomProperty1 > 69 ? randomProperty1 > 90 ? 3 : 2 : 1,
                                         Name = randomProperty1 > 69 ? randomProperty1 > 90 ? "Steel Pauldrons" : "Bronze Armguards" : "Leather Bracers",
-                                        DefenceRating = ((randomProperty1 * randomProperty2) / 100) / 20
+                                        DefenceRating = ((randomProperty1 * randomProperty2) / 10) / 20
                                     },
                                     1 => new Feet()
                                     {
                                         ArmourTier = randomProperty1 > 69 ? randomProperty1 > 90 ? 3 : 2 : 1,
                                         Name = randomProperty1 > 69 ? randomProperty1 > 90 ? "Steel Greaves" : "Bronze Boots" : "Leather Sandals",
-                                        DefenceRating = ((randomProperty1 * randomProperty2) / 100) / 40
+                                        DefenceRating = ((randomProperty1 * randomProperty2) / 10) / 40
                                     },
                                     2 => new Hands()
                                     {
                                         ArmourTier = randomProperty1 > 69 ? randomProperty1 > 90 ? 3 : 2 : 1,
                                         Name = randomProperty1 > 69 ? randomProperty1 > 90 ? "Steel Gauntlets" : "Bronze Gloves" : "Leather Cuffs",
-                                        DefenceRating = ((randomProperty1 * randomProperty2) / 100) / 40
+                                        DefenceRating = ((randomProperty1 * randomProperty2) / 10) / 40
                                     },
                                     3 => new Head()
                                     {
                                         ArmourTier = randomProperty1 > 69 ? randomProperty1 > 90 ? 3 : 2 : 1,
                                         Name = randomProperty1 > 69 ? randomProperty1 > 90 ? "Steel Helm" : "Bronze Cap" : "Leather Hood",
-                                        DefenceRating = ((randomProperty1 * randomProperty2) / 100) / 20
+                                        DefenceRating = ((randomProperty1 * randomProperty2) / 10) / 20
                                     },
                                     4 => new Legs()
                                     {
                                         ArmourTier = randomProperty1 > 69 ? randomProperty1 > 90 ? 3 : 2 : 1,
                                         Name = randomProperty1 > 69 ? randomProperty1 > 90 ? "Steel Leggings" : "Bronze Trousers" : "Leather Pants",
-                                        DefenceRating = (randomProperty1 * randomProperty2) / 100
+                                        DefenceRating = (randomProperty1 * randomProperty2) / 10
                                     },
                                     5 => new Torso()
                                     {
                                         ArmourTier = randomProperty1 > 69 ? randomProperty1 > 90 ? 3 : 2 : 1,
                                         Name = randomProperty1 > 69 ? randomProperty1 > 90 ? "Steel Chestplate" : "Bronze Vest" : "Leather Tunic",
-                                        DefenceRating = (randomProperty1 * randomProperty2) / 100
+                                        DefenceRating = (randomProperty1 * randomProperty2) / 10
                                     }
                                 };
                                 break;
@@ -230,26 +232,26 @@ namespace MM_API.Services
                                     {
                                         Name = randomProperty1 > 91 ? "Gore Cleaver" : "Axe",
                                         Unique = randomProperty1 > 91 ? true : false,
-                                        DamageRating = (randomProperty1 * randomProperty2) / 100,
+                                        DamageRating = (randomProperty1 * randomProperty2) / 8,
                                     },
                                     1 => new Spear()
                                     {
                                         Name = randomProperty1 > 91 ? "Heart Poker" : "Spear",
                                         Unique = randomProperty1 > 91 ? true : false,
-                                        DamageRating = (randomProperty1 * randomProperty2) / 100,
+                                        DamageRating = (randomProperty1 * randomProperty2) / 8,
                                     },
                                     2 => new Staff()
                                     {
                                         Name = randomProperty1 > 91 ? "Bear" : "Staff",
                                         Unique = randomProperty1 > 91 ? true : false,
-                                        DamageRating = (randomProperty1 * randomProperty2) / 100,
+                                        DamageRating = (randomProperty1 * randomProperty2) / 8,
                                     },
                                     3 => new Sword()
                                     {
                                         Name = randomProperty1 > 91 ? "Oath Keeper" : "Sword",
                                         Unique = randomProperty1 > 91 ? true : false,
-                                        DamageRating = (randomProperty1 * randomProperty2) / 100,
-                                    },
+                                        DamageRating = (randomProperty1 * randomProperty2) / 8,
+                                    },//DIVIDE ARMOUR REDUCTION BY 6 due to 6 PIECES OF ARMOUR and 1 WEAPON
                                 };
                                 break;
                             case 2: //jewellery
@@ -425,7 +427,7 @@ namespace MM_API.Services
                     {
                         ClaimedItem = JsonConvert.SerializeObject(result),
                         ClaimCooldownExpiryDateTime = updateStateResult.Item1,
-                        ClaimCooldownExpiryOnTick = updateStateResult.Item2,
+                        ClaimCooldownExpiryAsTick = updateStateResult.Item2,
                         
 
                     };

@@ -22,8 +22,8 @@ using MonoMonarchNetworkFramework.Authentication.Register;
 using MonoMonarchNetworkFramework.Authentication.Login;
 using MonoMonarchNetworkFramework.Authentication.Logout;
 
-using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode;
-using MonoMonarchGameFramework.Game.Kingdom.Map;
+using MonoMonarchGameFramework.Game.Kingdom.Nodes;
+using MonoMonarchGameFramework.Game.Kingdom;
 
 using MonoMonarchGameFramework.Game.Character;
 
@@ -54,7 +54,7 @@ using MonoMonarchGameFramework.Game.Armoury.Equipment.Jewellery.Ring;
 
 using MonoMonarchGameFramework.Game;
 using MonoMonarchGameFramework.Game.Armoury;
-using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode.Grassland;
+using MonoMonarchGameFramework.Game.Kingdom.Nodes.Grassland;
 using MonoMonarchGameFramework.Game.Treasury;
 using MonoMonarchGameFramework.Game.Treasury.Currency;
 using MonoMonarchGameFramework.Game.Treasury.GoldBag;
@@ -84,84 +84,128 @@ namespace MM_API.Services
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IConfiguration _configuration;
+        private readonly IWebHostEnvironment _env;
 
-        public AuthenticationService(MM_DbContext dbContext, UserManager<ApplicationUser> identityUser, SignInManager<ApplicationUser> signInManager, IConfiguration configuration)
+        public AuthenticationService(MM_DbContext dbContext, IWebHostEnvironment env ,UserManager<ApplicationUser> identityUser, SignInManager<ApplicationUser> signInManager, IConfiguration configuration)
         {
             _dbContext = dbContext;
             _userManager = identityUser;
             _signInManager = signInManager;
             _configuration = configuration;
+            _env = env;
         }
 
         public async Task<IRegistrationResponse> RegisterAsync(RegistrationPayload registrationPayload)
         {
             try
             {
+                DateTimeOffset currentTickAsDateTime = GameUtilities.GetCurrentTickAsDateTime();
+
+                var newGrasslandMapSeed1980FilePath = Path.Combine(_env.ContentRootPath, "assets", "newGrasslandMapSeed1980.json");
+
+                var newCharacterSheetSeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newCharacterSheetSeed.json");
+
+                var newCharacterWeaponSeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newCharacterWeaponSeed.json");
+                var newCharacterArmourSeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newCharacterArmourSeed.json");
+                var newCharacterJewellerySeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newCharacterJewellerySeed.json");
+
+                var newArmouryWeaponSeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newArmouryWeaponSeed.json");
+                var newArmouryArmourSeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newArmouryArmourSeed.json");
+                var newArmouryJewellerySeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newArmouryJewellerySeed.json");
+
+                var newKingdomStateSeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newKingdomStateSeed.json");
+                var newCharacterStateSeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newCharacterStateSeed.json");
+                var newTreasuryStateSeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newTreasuryStateSeed.json");
+                var newSoupkitchenStateSeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newSoupkitchenStateSeed.json");
+
+                var newRefreshTokenSeedFilePath = Path.Combine(_env.ContentRootPath, "assets", "newRefreshTokenSeed.json");
+
                 using (var transaction = await _dbContext.Database.BeginTransactionAsync())
                 {
                     try
                     {
-                        var userName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower();
                         var user = new t_User()
                         {
-                            user_name = userName
+                            user_name = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
                         };
                         await _dbContext.AddAsync(user);
                         await _dbContext.SaveChangesAsync();
 
-
-                        var refreshToken = new RefreshToken()
-                        {
-                            Token = "null",
-                            Expires = DateTimeOffset.MinValue,
-                            Created = DateTimeOffset.MinValue
-                        };
-                        var serialisedRefreshToken = JsonConvert.SerializeObject(refreshToken);
                         var session = new t_Session()
                         {
-                            session_loggedin = DateTimeOffset.MinValue,
-                            session_loggedout = DateTimeOffset.MinValue,
-                            refreshtoken = serialisedRefreshToken,
-                            fk_user_id = user.user_id
+                            fk_user_id = user.user_id,
+
+                            session_loggedin = DateTimeOffset.MaxValue,
+                            session_loggedout = DateTimeOffset.MaxValue,
+
+                            refreshtoken = await File.ReadAllTextAsync(newRefreshTokenSeedFilePath),
                         };
-                        await _dbContext.AddAsync(session);
 
                         var kingdom = new t_Kingdom()
                         {
-                            kingdom_name = "null",
-                            fk_user_id = user.user_id
+                            fk_user_id = user.user_id,
+
+                            kingdom_state = await File.ReadAllTextAsync(newKingdomStateSeedFilePath),
+                            kingdom_map = await File.ReadAllTextAsync(newGrasslandMapSeed1980FilePath),
                         };
-                        await _dbContext.AddAsync(kingdom);
 
                         var character = new t_Character()
                         {
-                            character_name = "null",
-                            fk_user_id = user.user_id
+                            fk_user_id = user.user_id,
+
+                            character_weapons = await File.ReadAllTextAsync(newCharacterWeaponSeedFilePath),
+                            character_armour = await File.ReadAllTextAsync(newCharacterArmourSeedFilePath),
+                            character_jewellery = await File.ReadAllTextAsync(newCharacterJewellerySeedFilePath),
+
+                            character_attributes = await File.ReadAllTextAsync(newCharacterSheetSeedFilePath),
+                            character_state = await File.ReadAllTextAsync(newCharacterStateSeedFilePath),
                         };
-                        await _dbContext.AddAsync(character);
 
                         var soupkitchen = new t_Soupkitchen()
                         {
+                            fk_user_id = user.user_id,
 
-                            fk_user_id = user.user_id
+                            soupkitchen_state = await File.ReadAllTextAsync(newSoupkitchenStateSeedFilePath),
+
+                            soupkitchen_updated_at_as_gametick = 0,
+                            soupkitchen_updated_at_datetime = currentTickAsDateTime,
                         };
-                        await _dbContext.AddAsync(soupkitchen);
 
+                        var treasury = new t_Treasury()
+                        {
+                            fk_user_id = user.user_id,
 
+                            treasury_total = 0,
 
-                        // await _dbContext.AddAsync(treasury);
+                            treasury_updated_at_as_gametick = 0,
+                            treasury_updated_at_datetime = currentTickAsDateTime,
+
+                            treasury_state = await File.ReadAllTextAsync(newTreasuryStateSeedFilePath),
+
+                        };
 
                         var armoury = new t_Armoury()
                         {
                             fk_user_id = user.user_id,
+
+                            armoury_weapons = await File.ReadAllTextAsync(newArmouryWeaponSeedFilePath),
+                            armoury_armour = await File.ReadAllTextAsync(newArmouryArmourSeedFilePath),
+                            armoury_jewellery = await File.ReadAllTextAsync(newArmouryJewellerySeedFilePath),
                         };
 
+
+                        await _dbContext.AddAsync(session);
+                        await _dbContext.AddAsync(kingdom);
+                        await _dbContext.AddAsync(treasury);
                         await _dbContext.AddAsync(armoury);
+                        await _dbContext.AddAsync(character);
+                        await _dbContext.AddAsync(soupkitchen);
+
 
                         var identityUser = new ApplicationUser()
                         {
                             Id = Guid.NewGuid().ToString(),
-                            UserName = userName,
+                            UserName = registrationPayload.Email,
                             Email = registrationPayload.Email,
                             CustomUserId = user.user_id,
                         };
@@ -169,22 +213,21 @@ namespace MM_API.Services
                         var claimsResult = await _userManager.AddToRoleAsync(identityUser, "User");
 
                         await transaction.CommitAsync();
-
-                        return new RegistrationResponse()
-                        {
-                            //Username = userName,
-                        };
+                        var result = new RegistrationResponse();
+                        return result;
                     }
                     catch (Exception)
                     {
                         await transaction.RollbackAsync();
-                        return new ErrorResponse("Transaction failed, rolling back");
+                        var result = new ErrorResponse("Transaction failed, rolling back");
+                        return result;
                     }
                 }
             }
             catch (Exception)
             {
-                return new ErrorResponse("Registration failed");
+                var result = new ErrorResponse("Registration failed");
+                return result;
             }
         }
 
@@ -194,7 +237,7 @@ namespace MM_API.Services
             {
                 var user = await _userManager.FindByEmailAsync(loginPayload.Email);
                 if (user == null)
-                    return new ErrorResponse("Invalid email or password"); //email
+                    return new ErrorResponse("Invalid email or password"); // email
 
                 var signInResult = await _signInManager.CheckPasswordSignInAsync(user, loginPayload.Password, lockoutOnFailure: false);
 
@@ -204,45 +247,40 @@ namespace MM_API.Services
                 string authToken = await GenerateAuthToken(user);
                 RefreshToken refreshToken = await GenerateRefreshTokenAsync();
 
-                var serialisedRefreshToken = JsonConvert.SerializeObject(refreshToken);
-
-                t_Session session = await _dbContext.t_session
-                    .Where(w => w.fk_user_id == user.CustomUserId && w.session_loggedin == DateTimeOffset.MinValue)
-                    .FirstOrDefaultAsync();
-
-                if (session != null)
+                string serialisedRefreshToken;
+                JsonSerializer serialiser = new JsonSerializer();
+                using (StringWriter sw = new StringWriter())
                 {
-                    session.session_loggedin = DateTimeOffset.UtcNow.UtcDateTime;
-                    session.refreshtoken = serialisedRefreshToken;
-                }
-                else
-                {
-                    session = new t_Session
+                    using (JsonWriter writer = new JsonTextWriter(sw))
                     {
-                        fk_user_id = user.CustomUserId,
-                        session_loggedin = DateTimeOffset.UtcNow.UtcDateTime,
-                        session_loggedout = DateTimeOffset.MinValue,
-                        refreshtoken = serialisedRefreshToken
-                    };
-                    await _dbContext.t_session.AddAsync(session);
+                        serialiser.Serialize(writer, refreshToken);
+                        serialisedRefreshToken = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+                    }
                 }
+                t_Session session = new t_Session
+                {
+                    fk_user_id = user.CustomUserId,
+                    session_loggedin = GameUtilities.GetCurrentTickAsDateTime(),
+                    session_loggedout = DateTimeOffset.MaxValue,
+                    refreshtoken = serialisedRefreshToken
+                };
+                await _dbContext.t_session.AddAsync(session);
+                // }
 
                 await _dbContext.SaveChangesAsync();
 
                 return new LoginResponse
                 {
-                    //Username = user.UserName,
                     AuthToken = authToken,
                     RefreshToken = refreshToken
                 };
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
+                return new ErrorResponse("Login failed");
             }
-            return null;
         }
-
         public async Task<ILogoutResponse> LogoutAsync(LogoutPayload logoutPayload)
         {
 
@@ -250,39 +288,34 @@ namespace MM_API.Services
             {
                 var principle = GetTokenPrinciple(logoutPayload.AuthToken);
                 List<Claim> claims = principle.Claims.ToList();
+                if (principle == null)
+                    return new ErrorResponse("Invalid authToken");
                 var identityUser = await _userManager.FindByIdAsync(principle.Claims.ElementAt(0).Value);//claims.ElementAt(0).Value
+                if (identityUser == null)
+                    return new ErrorResponse("User not found");
                 t_Session session = await _dbContext.t_session
-                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MinValue)
-                    .OrderByDescending(s => s.session_loggedin)
+                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MaxValue)
+                    .OrderBy(s => s.session_loggedin)
                     .FirstOrDefaultAsync();
-
-                string serialisedRefreshToken = JsonConvert.SerializeObject(logoutPayload.RefreshToken);
-                string cleanSerialisedRefreshToken = session.refreshtoken.Replace(" ", "");
-                if (cleanSerialisedRefreshToken != serialisedRefreshToken) // as logout endpoint will require auth, user's refreshtoken in t_session should equal logoutpayload, if not it means user failed to logout in previous t_session entry
+                if (session == null)
+                    return new ErrorResponse("No active session found");
+                RefreshToken refreshToken;
+                JsonSerializer serialiser = new JsonSerializer();
+                using (StringReader sr = new StringReader(session.refreshtoken))
                 {
-                    string errorLog = "payload refresh token is not equal to stored refresh token";
-                    System.Diagnostics.Debug.WriteLine($"{errorLog}");
-                    //add case to logger - for now,
-                    session.refreshtoken = $"{JsonConvert.SerializeObject(errorLog)}";
-                    session.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
+                    using (JsonReader reader = new JsonTextReader(sr)) refreshToken = serialiser.Deserialize<RefreshToken>(reader);
                 }
-                else
-                {
-                    session.session_loggedout = DateTimeOffset.UtcNow.UtcDateTime;
-                    session.refreshtoken = $"{JsonConvert.SerializeObject("logout success")}";
-                }
+                if (!refreshToken.Token.Equals(logoutPayload.RefreshToken.Token))
+                    session.refreshtoken = "Refresh token not equal to payload on Logout";
 
+                session.session_loggedout = GameUtilities.GetCurrentTickAsDateTime();
                 await _dbContext.SaveChangesAsync();
-                return new LogoutResponse
-                {
-                    //IsSuccess = true
-                };
+                return new LogoutResponse();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Signout failed: {ex.Message}");
+                return new ErrorResponse("Logout failed");
             }
-            return null;
         }
 
         public async Task<IRefreshTokenResponse> RefreshTokenAsync(RefreshTokenPayload refreshTokenPayload)
@@ -290,51 +323,68 @@ namespace MM_API.Services
             try
             {
                 if (refreshTokenPayload.RefreshToken.Expires <= DateTimeOffset.UtcNow.UtcDateTime)
-                    return new RefreshTokenResponse() { AuthToken = "null", RefreshToken = new RefreshToken() { Token = "expired", Created = DateTimeOffset.MinValue, Expires = DateTimeOffset.MinValue } };
-
+                    return new ErrorResponse("Payload refresh token expired");
                 var principle = GetTokenPrinciple(refreshTokenPayload.AuthToken);
-
+                if (principle == null)
+                    return new ErrorResponse("Invalid authToken");
                 List<Claim> claims = principle.Claims.ToList();
                 var identityUser = await _userManager.FindByIdAsync(principle.Claims.ElementAt(0).Value);
+                if (identityUser == null)
+                    return new ErrorResponse("User not found");
                 t_Session session = await _dbContext.t_session
-                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MinValue)
-                    .OrderByDescending(s => s.session_loggedin)
+                    .Where(w => w.fk_user_id == identityUser.CustomUserId && w.session_loggedout == DateTimeOffset.MaxValue)
+                    .OrderBy(s => s.session_loggedin)
                     .FirstOrDefaultAsync();
-
-                string serialisedRefreshToken = JsonConvert.SerializeObject(refreshTokenPayload.RefreshToken);
-                string cleanSerialisedRefreshToken = session.refreshtoken.Replace(" ", "");
-
-                var response = new RefreshTokenResponse();
-
-                if (cleanSerialisedRefreshToken != serialisedRefreshToken)
+                if (session == null)
+                    return new ErrorResponse("No active session found");
+                RefreshToken refreshToken;
+                JsonSerializer serialiser = new JsonSerializer();
+                using (StringReader sr = new StringReader(session.refreshtoken))
                 {
-                    string errorLog = "payload refresh token is not equal to stored refresh token";
-                    System.Diagnostics.Debug.WriteLine($"{errorLog}");
+                    using (JsonReader reader = new JsonTextReader(sr)) refreshToken = serialiser.Deserialize<RefreshToken>(reader);
                 }
-                else
+                if (!refreshToken.Token.Equals(refreshTokenPayload.RefreshToken.Token))
                 {
-                    response.AuthToken = GenerateAuthToken(identityUser).Result;
-                    response.RefreshToken = GenerateRefreshTokenAsync().Result;
-
-                    session.refreshtoken = $"{JsonConvert.SerializeObject(response.RefreshToken)}";
+                    session.refreshtoken = "Refresh token not equal to payload on RefreshToken";
+                    await _dbContext.SaveChangesAsync();
+                    return new ErrorResponse($"{session.refreshtoken}");
                 }
 
+                var newAuthToken = await GenerateAuthToken(identityUser);
+                var newRefreshToken = await GenerateRefreshTokenAsync();
+
+                string serialisedNewRefreshToken = string.Empty;
+                using (StringWriter sw = new StringWriter())
+                {
+                    using (JsonWriter writer = new JsonTextWriter(sw))
+                    {
+
+                        serialiser.Serialize(writer, newRefreshToken);
+                        serialisedNewRefreshToken = sw.ToString();
+                        sw.GetStringBuilder().Clear();
+                    }
+                }
+                session.refreshtoken = serialisedNewRefreshToken;
                 await _dbContext.SaveChangesAsync();
 
+                var response = new RefreshTokenResponse()
+                {
+                    AuthToken = newAuthToken,
+                    RefreshToken = newRefreshToken
+                };
                 return response;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"Signout failed: {ex.Message}");
+                return new ErrorResponse("Refreshing token pair failed");
             }
-            return null;
         }
         private async Task<string> GenerateAuthToken(ApplicationUser user)
         {
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Name, user.UserName),
+                new Claim(ClaimTypes.Email, user.Email),
 
             };
 
@@ -353,6 +403,7 @@ namespace MM_API.Services
                 audience: _configuration["JwtSettings:Audience"],
                 claims: claims,
                 expires: DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(Convert.ToDouble(_configuration["JwtSettings:ExpiresInMinutes"])),
+                //expires: DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(3),
                 signingCredentials: creds
             );
             string writtenToken = new JwtSecurityTokenHandler().WriteToken(token);
@@ -365,6 +416,7 @@ namespace MM_API.Services
                 Token = await GetUniqueTokenAsync(),
                 Created = DateTimeOffset.UtcNow.UtcDateTime,
                 Expires = DateTimeOffset.UtcNow.UtcDateTime.AddDays(1)
+                //Expires = DateTimeOffset.UtcNow.UtcDateTime.AddMinutes(6)
             };
 
             return refreshToken;
@@ -388,26 +440,34 @@ namespace MM_API.Services
 
         private ClaimsPrincipal? GetTokenPrinciple(string token)
         {
-            var validation = new TokenValidationParameters
+            try
             {
-                ValidateActor = false,
-                ValidateAudience = false,
-                ValidateIssuer = false,
-                ValidateLifetime = false,
-                ValidateSignatureLast = false,
-                ValidateTokenReplay = false,
-                ValidateWithLKG = false,
+                var validation = new TokenValidationParameters
+                {
+                    ValidateActor = false,
+                    ValidateAudience = false,
+                    ValidateIssuer = false,
+                    ValidateLifetime = false,
+                    ValidateSignatureLast = false,
+                    ValidateTokenReplay = false,
+                    ValidateWithLKG = false,
 
-                ValidateIssuerSigningKey = true,
+                    ValidateIssuerSigningKey = true,
 
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!)),
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!)),
 
-                NameClaimType = ClaimTypes.Name,//"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
-                RoleClaimType = ClaimTypes.Role,//"http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
+                    NameClaimType = ClaimTypes.Email,//"http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name",
+                    RoleClaimType = ClaimTypes.Role,//"http://schemas.microsoft.com/ws/2008/06/identity/claims/role",
 
-            };
-            ClaimsPrincipal claimsPrinciple = new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
-            return claimsPrinciple;
+                };
+                ClaimsPrincipal claimsPrinciple = new JwtSecurityTokenHandler().ValidateToken(token, validation, out _);
+                return claimsPrinciple;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
         }
     }
 
@@ -439,223 +499,79 @@ namespace MM_API.Services
         {
             try
             {
-                RefreshToken sessionRefreshToken = new RefreshToken()
-                {
-                    Token = "null",
-                    Expires = DateTimeOffset.MinValue,
-                    Created = GameUtilities.GetCurrentTickAsDateTime(),
-                };
-                BaseWeapon[] characterWeapons = [];
-                BaseArmour[] characterArmour =
-                    [
-                    new Torso {
-                        Name = "Sheep's-wool Woven Shirt",
-                        ArmourTier = 1,
-                        DefenceRating = 2
-                    },
-                    new Legs
-                    {
-                        Name = "Leather Chaps",
-                        ArmourTier = 1,
-                        DefenceRating = 5
-                    },
-                    new Feet
-                    {
-                    Name = "Leather Sandals",
-                    ArmourTier = 1,
-                    DefenceRating = 2
-                    }
-                    ];
-                BaseJewellery[] characterJewellery =
-                    [
-                    new Ring
-                    {
-                        JewelleryTier = 1,
-                        Name = "Wedding Ring",
-                        ConstitutionBoon = 5,
-                        LuckBoon = 1,
-                        StaminaBoon = 1
-                    }
-                    ];
-                BaseAttribute[] characterAttributes =
-                    [
-                    new CharacterLevel
-                    {
-                        Level = 1
-                    },
-                    new Constitution
-                    {
-                        Level = 50
-                    },
-                    new Defence
-                    {
-                        Level = 1
-                    },
-                    new Luck
-                    {
-                        Level = 1
-                    },
-                    new Stamina
-                    {
-                        Level = 1
-                    },
-                    new Strength
-                    {
-                        Level = 1
-                    }
-                    ];
-
-
-                BaseWeapon[] armouryWeapons =
-                    [
-                    new Sword
-                    {
-                        Name = "Iron Sword",
-                        DamageRating = 10,
-                        Unique = false
-                    }
-                    ];
-                BaseArmour[] armouryArmour = [];
-                BaseJewellery[] armouryJewellery = [];
-
-                TreasuryState treasuryData = new TreasuryState();
-                SoupkitchenState soupkitchenData = new SoupkitchenState();
-                CharacterState characterState = new CharacterState();
-
                 DateTimeOffset currentTickAsDateTime = GameUtilities.GetCurrentTickAsDateTime();
-                BigInteger subtractionResult = treasuryData.SubtractCoin(treasuryData.GetTotalCoin()); //adjust to 0, due to UpdateCoin adding coin - precaution
-                if (subtractionResult > 0)
-                    return new ErrorResponse("Subtract coin error during registration seeding");
+               
+                var newGrasslandMapSeed1980FilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newGrasslandMapSeed1980.json");
 
-                string sessionRefreshTokenSerialised;
+                var newCharacterSheetSeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newCharacterSheetSeed.json");
 
-                string characterAttributesSerialised;
-                string characterWeaponsSerialised, characterArmourSerialised, characterJewellerySerialised;
-                string characterStateSerialised;
+                var newCharacterWeaponSeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newCharacterWeaponSeed.json");
+                var newCharacterArmourSeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newCharacterArmourSeed.json");
+                var newCharacterJewellerySeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newCharacterJewellerySeed.json");
 
-                string armouryWeaponsSerialised, armouryArmourSerialised, armouryJewellerySerialised;
+                var newArmouryWeaponSeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newArmouryWeaponSeed.json");
+                var newArmouryArmourSeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newArmouryArmourSeed.json");
+                var newArmouryJewellerySeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newArmouryJewellerySeed.json");
 
-                string treasuryDataSerialised, soupkitchenDataSerialised;
-                JsonSerializer serialiser = new JsonSerializer();
-                using (StringWriter sw = new StringWriter())
-                {
-                    using (JsonWriter writer = new JsonTextWriter(sw))
-                    {
-                        serialiser.Serialize(writer, sessionRefreshToken);
-                        sessionRefreshTokenSerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
+                var newKingdomStateSeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newKingdomStateSeed.json");
+                var newCharacterStateSeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newCharacterStateSeed.json");
+                var newTreasuryStateSeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newTreasuryStateSeed.json");
+                var newSoupkitchenStateSeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newSoupkitchenStateSeed.json");
 
-
-                        serialiser.Serialize(writer, characterAttributes);
-                        characterAttributesSerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
-
-                        serialiser.Serialize(writer, characterWeapons);
-                        characterWeaponsSerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
-                        serialiser.Serialize(writer, characterArmour);
-                        characterArmourSerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
-                        serialiser.Serialize(writer, characterJewellery);
-                        characterJewellerySerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
-
-                        serialiser.Serialize(writer, characterState);
-                        characterStateSerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
-
-
-                        serialiser.Serialize(writer, armouryWeapons);
-                        armouryWeaponsSerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
-                        serialiser.Serialize(writer, armouryArmour);
-                        armouryArmourSerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
-                        serialiser.Serialize(writer, armouryJewellery);
-                        armouryJewellerySerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
-
-                        serialiser.Serialize(writer, treasuryData);
-                        treasuryDataSerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
-
-                        serialiser.Serialize(writer, soupkitchenData);
-                        soupkitchenDataSerialised = sw.ToString();
-                        sw.GetStringBuilder().Clear();
-                    }
-                }
-                serialiser = null;
-
-                var grasslandFilePath = Path.Combine(_env.ContentRootPath, "assets", "grasslandmap1980.json");
-                string grasslandMapJson = await File.ReadAllTextAsync(grasslandFilePath);
+                var newRefreshTokenSeedFilePath = Path.Combine(_env.ContentRootPath, "Assets\\NewUserSeededData", "newRefreshTokenSeed.json");
 
                 using (var transaction = await _dbContext.Database.BeginTransactionAsync())
                 {
                     try
                     {
-
-                        //var userName = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower();
                         var user = new t_User()
                         {
                             user_name = registrationPayload.Email.Substring(0, registrationPayload.Email.IndexOf('@')).ToLower(),
-
                         };
                         await _dbContext.AddAsync(user);
-                        await _dbContext.SaveChangesAsync();  //save changes generate auto-incremement (integer) user_id
+                        await _dbContext.SaveChangesAsync();
+
                         var session = new t_Session()
                         {
-                            session_loggedin = DateTimeOffset.MaxValue,
-                            session_loggedout = DateTimeOffset.MaxValue,
-                            refreshtoken = sessionRefreshTokenSerialised,
                             fk_user_id = user.user_id,
 
+                            session_loggedin = DateTimeOffset.MaxValue,
+                            session_loggedout = DateTimeOffset.MaxValue,
+
+                            refreshtoken = await File.ReadAllTextAsync(newRefreshTokenSeedFilePath),
                         };
 
                         var kingdom = new t_Kingdom()
                         {
-                            kingdom_name = "null",
                             fk_user_id = user.user_id,
-                            kingdom_map = grasslandMapJson,
 
-                            kingdom_num_node_types =
-                            [
-                                1980,
-                                0,
-                                0,
-                                0,
-                                0,
-                                0,
-                                0,
-                                0,
-                                0
-                                ],
-
+                            kingdom_state = await File.ReadAllTextAsync(newKingdomStateSeedFilePath),
+                            kingdom_map = await File.ReadAllTextAsync(newGrasslandMapSeed1980FilePath),
                         };
 
                         var character = new t_Character()
                         {
-                            character_name = "null",
                             fk_user_id = user.user_id,
+                            
 
-                            character_weapons = characterWeaponsSerialised,
-                            character_armour = characterArmourSerialised,
-                            character_jewellery = characterJewellerySerialised,
+                            character_weapons = await File.ReadAllTextAsync(newCharacterWeaponSeedFilePath),
+                            character_armour = await File.ReadAllTextAsync(newCharacterArmourSeedFilePath),
+                            character_jewellery = await File.ReadAllTextAsync(newCharacterJewellerySeedFilePath),
 
-                            character_attributes = characterAttributesSerialised,
-                            character_state = characterStateSerialised,
+                            character_attributes = await File.ReadAllTextAsync(newCharacterSheetSeedFilePath),
+                            character_state = await File.ReadAllTextAsync(newCharacterStateSeedFilePath),
+
                             character_isalive = true,
-
-
                         };
 
                         var soupkitchen = new t_Soupkitchen()
                         {
                             fk_user_id = user.user_id,
-                            soupkitchen_state = soupkitchenDataSerialised,
+
+                            soupkitchen_state = await File.ReadAllTextAsync(newSoupkitchenStateSeedFilePath),
+
                             soupkitchen_updated_at_as_gametick = 0,
                             soupkitchen_updated_at_datetime = currentTickAsDateTime,
-
-
                         };
 
                         var treasury = new t_Treasury()
@@ -663,27 +579,21 @@ namespace MM_API.Services
                             fk_user_id = user.user_id,
 
                             treasury_total = 0,
+
                             treasury_updated_at_as_gametick = 0,
-
                             treasury_updated_at_datetime = currentTickAsDateTime,
-                            //new DateTimeOffset(
-                            //DateTimeOffset.UtcNow.Year, DateTimeOffset.UtcNow.Month, DateTimeOffset.UtcNow.Day, 
-                            //DateTimeOffset.UtcNow.Hour, DateTimeOffset.UtcNow.Minute, DateTimeOffset.UtcNow.Second - (DateTimeOffset.UtcNow.Second % 5),
-                            //TimeSpan.Zero),
 
-                            treasury_state = treasuryDataSerialised,
+                            treasury_state = await File.ReadAllTextAsync(newTreasuryStateSeedFilePath),
 
                         };
 
                         var armoury = new t_Armoury()
                         {
                             fk_user_id = user.user_id,
-
-                            armoury_weapons = armouryWeaponsSerialised,
-                            armoury_armour = armouryArmourSerialised,
-                            armoury_jewellery = armouryJewellerySerialised,
-
-
+                            
+                            armoury_weapons = await File.ReadAllTextAsync(newArmouryWeaponSeedFilePath),
+                            armoury_armour = await File.ReadAllTextAsync(newArmouryArmourSeedFilePath),
+                            armoury_jewellery = await File.ReadAllTextAsync(newArmouryJewellerySeedFilePath),
                         };
 
 

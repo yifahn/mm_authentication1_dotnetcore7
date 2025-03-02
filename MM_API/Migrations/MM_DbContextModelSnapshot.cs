@@ -95,16 +95,16 @@ namespace MM_API.Migrations
                         {
                             Id = "5de48f8c-0a70-4e21-9cc0-798ff818fdc3",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "0f2b7b40-03fc-4995-85e6-ce7f298576e2",
+                            ConcurrencyStamp = "0d518909-a494-4038-94a7-ec5127d6e66c",
                             CustomUserId = -999,
                             Email = "yifahnadmin@gmail.com",
                             EmailConfirmed = false,
                             LockoutEnabled = false,
                             NormalizedEmail = "YIFAHNADMIN@GMAIL.COM",
                             NormalizedUserName = "YIFAHNADMIN",
-                            PasswordHash = "AQAAAAIAAYagAAAAEKN0SmeAwjqtnU7UxkkumgpgaK/viGtJ64AX+PmGLVm+0knn4ZQ7W+2L51mHY0gflg==",
+                            PasswordHash = "AQAAAAIAAYagAAAAENi8MtPo0rzm3wlGbSIZxuBHENprU4f/v4AJc5MDtUCUK81oyklGhQZX9xbTsq6B1g==",
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "00c7552c-4c9e-4a59-8ecc-a403174032e2",
+                            SecurityStamp = "e66fee54-3157-4563-a1b4-06b3772e6024",
                             TwoFactorEnabled = false,
                             UserName = "yifahnadmin"
                         });
@@ -163,10 +163,6 @@ namespace MM_API.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("character_name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("character_state")
                         .IsRequired()
                         .HasColumnType("jsonb");
@@ -200,13 +196,9 @@ namespace MM_API.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb");
 
-                    b.Property<string>("kingdom_name")
+                    b.Property<string>("kingdom_state")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int[]>("kingdom_num_node_types")
-                        .IsRequired()
-                        .HasColumnType("integer[]");
+                        .HasColumnType("jsonb");
 
                     b.HasKey("kingdom_id");
 
@@ -248,7 +240,7 @@ namespace MM_API.Migrations
                             session_id = -999,
                             fk_user_id = -999,
                             refreshtoken = "null",
-                            session_loggedin = new DateTimeOffset(new DateTime(2024, 11, 17, 12, 42, 48, 174, DateTimeKind.Unspecified).AddTicks(3126), new TimeSpan(0, 0, 0, 0, 0)),
+                            session_loggedin = new DateTimeOffset(new DateTime(2025, 1, 8, 5, 15, 22, 876, DateTimeKind.Unspecified).AddTicks(6557), new TimeSpan(0, 0, 0, 0, 0)),
                             session_loggedout = new DateTimeOffset(new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         });
                 });
@@ -265,7 +257,8 @@ namespace MM_API.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("soupkitchen_state")
-                        .HasColumnType("text");
+                        .IsRequired()
+                        .HasColumnType("jsonb");
 
                     b.Property<int>("soupkitchen_updated_at_as_gametick")
                         .HasColumnType("integer");
@@ -292,6 +285,7 @@ namespace MM_API.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("treasury_state")
+                        .IsRequired()
                         .HasColumnType("jsonb");
 
                     b.Property<long>("treasury_total")

@@ -16,6 +16,7 @@ namespace MM_API.Database.Postgres.DbSchema
         public t_User User { get; set; }
 
 
+
         [Column(TypeName = "jsonb")]
         public string refreshtoken { get; set; }
 

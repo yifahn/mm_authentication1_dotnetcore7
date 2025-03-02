@@ -2,8 +2,8 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
 using MM_API.Database.Postgres.DbSchema;
-using MonoMonarchGameFramework.Game.Kingdom.Map;
-using MonoMonarchGameFramework.Game.Kingdom.Map.BaseNode;
+using MonoMonarchGameFramework.Game.Kingdom;
+using MonoMonarchGameFramework.Game.Kingdom.Nodes;
 
 namespace MM_API.Database.Postgres.DbSchema
 {
@@ -11,7 +11,6 @@ namespace MM_API.Database.Postgres.DbSchema
     {//NodeType int representations GL==0, TC==1, H==2, L==3, F==4, R==5, B==6, MT==7, W==8
         [Key]
         public int kingdom_id { get; set; }
-        public string kingdom_name { get; set; }
 
         public int fk_user_id { get; set; }
 
@@ -20,8 +19,8 @@ namespace MM_API.Database.Postgres.DbSchema
 
         [Column(TypeName = "jsonb")]
         public string kingdom_map { get; set; }
-        // public KindomState kingdom_state {}
 
-        public int[] kingdom_num_node_types { get; set; }
+        [Column(TypeName = "jsonb")]
+        public string kingdom_state { get; set; }
     }
 }

@@ -22,7 +22,6 @@ using MonoMonarchNetworkFramework.Game.Character.State;
 using MonoMonarchNetworkFramework.Game.Character.Inventory;
 
 using MonoMonarchGameFramework.Game;
-using MonoMonarchGameFramework.Game.Kingdom.Map;
 using MonoMonarchGameFramework.Game.Armoury.Equipment;
 using MonoMonarchGameFramework.Game.Character;
 
@@ -84,15 +83,12 @@ namespace MM_API.Services
 
                 return new CharacterLoadResponse
                 {
-
-                    CharacterName = character.character_name,
-
                     CharacterWeapons = character.character_weapons,
                     CharacterArmour = character.character_armour,
                     CharacterJewellery = character.character_jewellery,
 
                     CharacterSheet = character.character_attributes,
-                    CharacterState = character.character_state
+                    CharacterState = character.character_state,
                 };
             }
             catch (Exception)
@@ -2164,7 +2160,7 @@ namespace MM_API.Services
 
 //    return (sqlBuilder.ToString(), parameters.ToArray());
 //}
-//public async Task<IMapUpdateResponse> UpdateMap(MapUpdatePayload mapUpdatePayload)
+//public async Task<IMapUpdateResponse> UpdateMap(KingdomMapUpdatePayload mapUpdatePayload)
 //{
 //    try
 //    {
@@ -2185,7 +2181,7 @@ namespace MM_API.Services
 //                await _dbContext.Database.ExecuteSqlRawAsync(sqlGenerationResult.Item1[i], sqlGenerationResult.Item2[i]);
 //            }
 //        }
-//        return new MapUpdateResponse()
+//        return new KingdomMapUpdateResponse()
 //        {
 //        };
 //    }
@@ -2193,7 +2189,7 @@ namespace MM_API.Services
 //    {
 //        System.Diagnostics.Debug.WriteLine($"Registration failed: {ex.Message}");
 //    }
-//    return new MapUpdateResponse()
+//    return new KingdomMapUpdateResponse()
 //    {
 //    };
 //}
@@ -2265,7 +2261,7 @@ namespace MM_API.Services
 //}
 //public static (string[], NpgsqlParameter[][]) GenerateEquipmentInventoryUpdateSQL(int[] equipmentIdNumArray, int[] equipmentAddOrRemoveArray, int userId)
 //{
-//    var nodeData = MapService.ResolveNodeDataByType(nodeTypeArray);
+//    var nodeData = KingdomService.ResolveNodeDataByType(nodeTypeArray);
 //    string[] sqlArray = new string[nodeTypeArray.Length];
 //    NpgsqlParameter[][] sqlParameterArray = new NpgsqlParameter[nodeTypeArray.Length][];
 //    for (int i = 0; i < nodeTypeArray.Length; i++)
